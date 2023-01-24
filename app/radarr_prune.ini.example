@@ -22,6 +22,8 @@ MAIL_LOGIN = login@mail.tld
 MAIL_PASSWORD = sgdfjsgdjsdg
 MAIL_SENDER = sender@mail.tld
 MAIL_RECEIVER = receiver@mail.tld,receiver2@mail.tld
+UNWANTED_GENRES = horror,musical
+REMOVE_UNWANTED_GENRES = OFF
 
 [PUSHOVER]
 ENABLED = OFF

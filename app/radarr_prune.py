@@ -1,5 +1,5 @@
 # Name: Pixlovarr Prune
-# Coder: Marco Janssen (twitter @marc0janssen)
+# Coder: Marco Janssen (mastodon @marc0janssen@mastodon.online)
 # date: 2021-11-15 21:38:51
 # update: 2021-12-31 16:41:15
 
@@ -93,6 +93,11 @@ class RLP():
                 self.mail_sender = self.config['PRUNE']['MAIL_SENDER']
                 self.mail_receiver = list(
                     self.config['PRUNE']['MAIL_RECEIVER'].split(","))
+                self.unwanted_genres = list(
+                    self.config['PRUNE']['UNWANTED_GENRES'].split(","))
+                self.remove_unwanted_genres = True if (
+                    self.config['PRUNE']
+                    ['REMOVE_UNWANTED_GENRES'] == "ON") else False
 
                 # PUSHOVER
                 self.pushover_enabled = True if (
@@ -175,7 +180,7 @@ class RLP():
 
     def evalMovie(self, movie):
 
-        isRemoved, isNotified = False, False
+        isRemoved, isPlanned = False, False
 
         # Get ID's for keeping movies anyway
         tagLabels_to_keep = self.tags_to_keep
@@ -276,7 +281,56 @@ class RLP():
                     logging.info(txtWillBeRemoved)
 
                     isRemoved = False
-                    isNotified = True
+                    isPlanned = True
+
+                    return isRemoved, isPlanned
+
+                if (
+                    set(movie.genres) &
+                    set(self.unwanted_genres) &
+                    self.remove_unwanted_genres
+                ):
+                    if not self.dry_run:
+                        if self.radarr_enabled:
+
+                            self.radarrNode.delete_movie(
+                                movie_id=movie.id,
+                                tmdb_id=None,
+                                imdb_id=None,
+                                addImportExclusion=True,
+                                deleteFiles=self.delete_files
+                            )
+
+                    if self.delete_files:
+                        self.txtFilesDelete = \
+                            ", files deleted."
+                    else:
+                        self.txtFilesDelete = \
+                            ", files preserved."
+
+                    if self.pushover_enabled:
+                        self.message = self.userPushover.send_message(
+                            message=f"{movie.title} ({movie.year}) "
+                            f"Prune - UNWANTED - {movie.title} "
+                            f"({movie.year})"
+                            f"{self.txtFilesDelete}"
+                            f" - {movieDownloadDate}",
+                            sound=self.pushover_sound
+                        )
+
+                    txtUnwanted = (
+                        f"Prune - UNWANTED - {movie.title} ({movie.year})"
+                        f"{self.txtFilesDelete}"
+                        f" - {movieDownloadDate}"
+                    )
+
+                    self.writeLog(False, f"{txtUnwanted}\n")
+                    logging.info(txtUnwanted)
+
+                    isRemoved = True
+                    isPlanned = False
+
+                    return isRemoved, isPlanned
 
                 # Check is movie is older than "days set in INI"
                 if (
@@ -333,9 +387,9 @@ class RLP():
                     logging.info(txtRemoved)
 
                     isRemoved = True
-                    isNotified = False
+                    isPlanned = False
 
-        return isRemoved, isNotified
+        return isRemoved, isPlanned
 
     def run(self):
         if not self.enabled_run:
@@ -381,14 +435,14 @@ class RLP():
         # Make sure the library is not empty.
         numDeleted = 0
         numNotifified = 0
-        isRemoved, isNotified = False, False
+        isRemoved, isPlanned = False, False
         if media:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
             for movie in media:
-                isRemoved, isNotified = self.evalMovie(movie)
+                isRemoved, isPlanned = self.evalMovie(movie)
                 if isRemoved:
                     numDeleted += 1
-                if isNotified:
+                if isPlanned:
                     numNotifified += 1
 
         txtEnd = (
