@@ -237,51 +237,51 @@ class RLP():
                 print(f"self.unwanted_genres = {self.unwanted_genres}")
 
                 if (
-                    (set(movie.genres) &
-                        set(self.unwanted_genres)) &
-                    self.remove_unwanted_genres
+                    set(movie.genres) &
+                    set(self.unwanted_genres)
                 ):
-                    if not self.dry_run:
-                        if self.radarr_enabled:
+                    if self.remove_unwanted_genres:
+                        if not self.dry_run:
+                            if self.radarr_enabled:
 
-                            self.radarrNode.delete_movie(
-                                movie_id=movie.id,
-                                tmdb_id=None,
-                                imdb_id=None,
-                                addImportExclusion=True,
-                                deleteFiles=self.delete_files
+                                self.radarrNode.delete_movie(
+                                    movie_id=movie.id,
+                                    tmdb_id=None,
+                                    imdb_id=None,
+                                    addImportExclusion=True,
+                                    deleteFiles=self.delete_files
+                                )
+
+                        if self.delete_files:
+                            self.txtFilesDelete = \
+                                ", files deleted."
+                        else:
+                            self.txtFilesDelete = \
+                                ", files preserved."
+
+                        if self.pushover_enabled:
+                            self.message = self.userPushover.send_message(
+                                message=f"{movie.title} ({movie.year}) "
+                                f"Prune - UNWANTED - {movie.title} "
+                                f"({movie.year})"
+                                f"{self.txtFilesDelete}"
+                                f" - {movieDownloadDate}",
+                                sound=self.pushover_sound
                             )
 
-                    if self.delete_files:
-                        self.txtFilesDelete = \
-                            ", files deleted."
-                    else:
-                        self.txtFilesDelete = \
-                            ", files preserved."
-
-                    if self.pushover_enabled:
-                        self.message = self.userPushover.send_message(
-                            message=f"{movie.title} ({movie.year}) "
-                            f"Prune - UNWANTED - {movie.title} "
-                            f"({movie.year})"
+                        txtUnwanted = (
+                            f"Prune - UNWANTED - {movie.title} ({movie.year})"
                             f"{self.txtFilesDelete}"
-                            f" - {movieDownloadDate}",
-                            sound=self.pushover_sound
+                            f" - {movieDownloadDate}"
                         )
 
-                    txtUnwanted = (
-                        f"Prune - UNWANTED - {movie.title} ({movie.year})"
-                        f"{self.txtFilesDelete}"
-                        f" - {movieDownloadDate}"
-                    )
+                        self.writeLog(False, f"{txtUnwanted}\n")
+                        logging.info(txtUnwanted)
 
-                    self.writeLog(False, f"{txtUnwanted}\n")
-                    logging.info(txtUnwanted)
+                        isRemoved = True
+                        isPlanned = False
 
-                    isRemoved = True
-                    isPlanned = False
-
-                    return isRemoved, isPlanned
+                        return isRemoved, isPlanned
 
                 now = datetime.now()
 
