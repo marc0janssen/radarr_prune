@@ -237,8 +237,8 @@ class RLP():
                 print(f"self.unwanted_genres = {self.unwanted_genres}")
 
                 if (
-                    set(movie.genres) &
-                    set(self.unwanted_genres) &
+                    (set(movie.genres) &
+                        set(self.unwanted_genres)) &
                     self.remove_unwanted_genres
                 ):
                     if not self.dry_run:
