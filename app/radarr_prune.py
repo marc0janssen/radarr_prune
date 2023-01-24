@@ -231,6 +231,53 @@ class RLP():
 
             else:
 
+                if (
+                    set(movie.genres) &
+                    set(self.unwanted_genres) &
+                    self.remove_unwanted_genres
+                ):
+                    if not self.dry_run:
+                        if self.radarr_enabled:
+
+                            self.radarrNode.delete_movie(
+                                movie_id=movie.id,
+                                tmdb_id=None,
+                                imdb_id=None,
+                                addImportExclusion=True,
+                                deleteFiles=self.delete_files
+                            )
+
+                    if self.delete_files:
+                        self.txtFilesDelete = \
+                            ", files deleted."
+                    else:
+                        self.txtFilesDelete = \
+                            ", files preserved."
+
+                    if self.pushover_enabled:
+                        self.message = self.userPushover.send_message(
+                            message=f"{movie.title} ({movie.year}) "
+                            f"Prune - UNWANTED - {movie.title} "
+                            f"({movie.year})"
+                            f"{self.txtFilesDelete}"
+                            f" - {movieDownloadDate}",
+                            sound=self.pushover_sound
+                        )
+
+                    txtUnwanted = (
+                        f"Prune - UNWANTED - {movie.title} ({movie.year})"
+                        f"{self.txtFilesDelete}"
+                        f" - {movieDownloadDate}"
+                    )
+
+                    self.writeLog(False, f"{txtUnwanted}\n")
+                    logging.info(txtUnwanted)
+
+                    isRemoved = True
+                    isPlanned = False
+
+                    return isRemoved, isPlanned
+
                 now = datetime.now()
 
                 # check if there needs to be warn "DAYS" infront of removal
@@ -282,53 +329,6 @@ class RLP():
 
                     isRemoved = False
                     isPlanned = True
-
-                    return isRemoved, isPlanned
-
-                if (
-                    set(movie.genres) &
-                    set(self.unwanted_genres) &
-                    self.remove_unwanted_genres
-                ):
-                    if not self.dry_run:
-                        if self.radarr_enabled:
-
-                            self.radarrNode.delete_movie(
-                                movie_id=movie.id,
-                                tmdb_id=None,
-                                imdb_id=None,
-                                addImportExclusion=True,
-                                deleteFiles=self.delete_files
-                            )
-
-                    if self.delete_files:
-                        self.txtFilesDelete = \
-                            ", files deleted."
-                    else:
-                        self.txtFilesDelete = \
-                            ", files preserved."
-
-                    if self.pushover_enabled:
-                        self.message = self.userPushover.send_message(
-                            message=f"{movie.title} ({movie.year}) "
-                            f"Prune - UNWANTED - {movie.title} "
-                            f"({movie.year})"
-                            f"{self.txtFilesDelete}"
-                            f" - {movieDownloadDate}",
-                            sound=self.pushover_sound
-                        )
-
-                    txtUnwanted = (
-                        f"Prune - UNWANTED - {movie.title} ({movie.year})"
-                        f"{self.txtFilesDelete}"
-                        f" - {movieDownloadDate}"
-                    )
-
-                    self.writeLog(False, f"{txtUnwanted}\n")
-                    logging.info(txtUnwanted)
-
-                    isRemoved = True
-                    isPlanned = False
 
                     return isRemoved, isPlanned
 
