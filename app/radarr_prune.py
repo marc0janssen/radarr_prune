@@ -204,7 +204,7 @@ class RLP():
             movieDownloadDate = None
             fileList = glob.glob(movie.path + "/*")
 
-            print(fileList)
+            print(movie.path)
 
             for file in fileList:
                 if file.lower().endswith(tuple(self.video_extensions)):
