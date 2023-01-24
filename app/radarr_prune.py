@@ -95,9 +95,6 @@ class RLP():
                     self.config['PRUNE']['MAIL_RECEIVER'].split(","))
                 self.unwanted_genres = list(
                     self.config['PRUNE']['UNWANTED_GENRES'].split(","))
-                self.remove_unwanted_genres = True if (
-                    self.config['PRUNE']
-                    ['REMOVE_UNWANTED_GENRES'] == "ON") else False
 
                 # PUSHOVER
                 self.pushover_enabled = True if (
@@ -235,48 +232,47 @@ class RLP():
                     set(movie.genres) &
                     set(self.unwanted_genres)
                 ):
-                    if self.remove_unwanted_genres:
-                        if not self.dry_run:
-                            if self.radarr_enabled:
+                    if not self.dry_run:
+                        if self.radarr_enabled:
 
-                                self.radarrNode.delete_movie(
-                                    movie_id=movie.id,
-                                    tmdb_id=None,
-                                    imdb_id=None,
-                                    addImportExclusion=True,
-                                    deleteFiles=self.delete_files
-                                )
-
-                        if self.delete_files:
-                            self.txtFilesDelete = \
-                                ", files deleted."
-                        else:
-                            self.txtFilesDelete = \
-                                ", files preserved."
-
-                        if self.pushover_enabled:
-                            self.message = self.userPushover.send_message(
-                                message=f"{movie.title} ({movie.year}) "
-                                f"Prune - UNWANTED - {movie.title} "
-                                f"({movie.year})"
-                                f"{self.txtFilesDelete}"
-                                f" - {movieDownloadDate}",
-                                sound=self.pushover_sound
+                            self.radarrNode.delete_movie(
+                                movie_id=movie.id,
+                                tmdb_id=None,
+                                imdb_id=None,
+                                addImportExclusion=True,
+                                deleteFiles=self.delete_files
                             )
 
-                        txtUnwanted = (
-                            f"Prune - UNWANTED - {movie.title} ({movie.year})"
+                    if self.delete_files:
+                        self.txtFilesDelete = \
+                            ", files deleted."
+                    else:
+                        self.txtFilesDelete = \
+                            ", files preserved."
+
+                    if self.pushover_enabled:
+                        self.message = self.userPushover.send_message(
+                            message=f"{movie.title} ({movie.year}) "
+                            f"Prune - UNWANTED - {movie.title} "
+                            f"({movie.year})"
                             f"{self.txtFilesDelete}"
-                            f" - {movieDownloadDate}"
+                            f" - {movieDownloadDate}",
+                            sound=self.pushover_sound
                         )
 
-                        self.writeLog(False, f"{txtUnwanted}\n")
-                        logging.info(txtUnwanted)
+                    txtUnwanted = (
+                        f"Prune - UNWANTED - {movie.title} ({movie.year})"
+                        f"{self.txtFilesDelete}"
+                        f" - {movieDownloadDate}"
+                    )
 
-                        isRemoved = True
-                        isPlanned = False
+                    self.writeLog(False, f"{txtUnwanted}\n")
+                    logging.info(txtUnwanted)
 
-                        return isRemoved, isPlanned
+                    isRemoved = True
+                    isPlanned = False
+
+                    return isRemoved, isPlanned
 
                 now = datetime.now()
 
