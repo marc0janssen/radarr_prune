@@ -204,8 +204,6 @@ class RLP():
             movieDownloadDate = None
             fileList = glob.glob(movie.path + "/*")
 
-            print(movie.path)
-
             for file in fileList:
                 if file.lower().endswith(tuple(self.video_extensions)):
                     # Get modfified date on movie.nfo,
@@ -232,9 +230,6 @@ class RLP():
                     logging.info(txtMissing)
 
             else:
-
-                print(f"movie.genres = {movie.genres}")
-                print(f"self.unwanted_genres = {self.unwanted_genres}")
 
                 if (
                     set(movie.genres) &
