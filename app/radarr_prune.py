@@ -228,8 +228,6 @@ class RLP():
 
             else:
 
-                print(f"{movie.title} - {movie.genres}")
-
                 if (
                     set(movie.genres) &
                     set(self.unwanted_genres)
