@@ -290,8 +290,7 @@ class RLP():
                     self.writeLog(False, f"{txtUnwanted}\n")
                     logging.info(txtUnwanted)
 
-                    isRemoved = True
-                    isPlanned = False
+                    isRemoved, isPlanned = True, False
 
                     return isRemoved, isPlanned
 
@@ -344,8 +343,7 @@ class RLP():
                     self.writeLog(False, f"{txtWillBeRemoved}\n")
                     logging.info(txtWillBeRemoved)
 
-                    isRemoved = False
-                    isPlanned = True
+                    isRemoved, isPlanned = False, True
 
                     return isRemoved, isPlanned
 
@@ -403,8 +401,7 @@ class RLP():
                     self.writeLog(False, f"{txtRemoved}\n")
                     logging.info(txtRemoved)
 
-                    isRemoved = True
-                    isPlanned = False
+                    isRemoved, isPlanned = True, False
 
                 else:
                     if not self.only_show_remove_messages:
@@ -418,8 +415,7 @@ class RLP():
                         self.writeLog(False, f"{txtActive}\n")
                         logging.info(txtActive)
 
-                    isRemoved = False
-                    isPlanned = False
+                    isRemoved, isPlanned = False, False
 
         return isRemoved, isPlanned
 
