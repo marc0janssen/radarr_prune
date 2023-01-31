@@ -213,6 +213,17 @@ class RLP():
                                 as firstseen_file:
                             firstseen_file.close()
 
+                            if not self.only_show_remove_messages:
+                                txtFirstSeen = (
+                                    f"Prune - NEW - "
+                                    f"{movie.title} ({movie.year})"
+                                    f" is new."
+                                    f" - {movieDownloadDate}"
+                                )
+
+                                self.writeLog(False, f"{txtFirstSeen}\n")
+                                logging.info(txtFirstSeen)
+
                     modifieddate = os.stat(
                         f"{movie.path}/{self.firstseen}").st_mtime
                     movieDownloadDate = \
