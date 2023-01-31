@@ -394,6 +394,21 @@ class RLP():
                     isRemoved = True
                     isPlanned = False
 
+                else:
+                    if not self.only_show_remove_messages:
+                        txtNoOverdue = (
+                            f"Prune - No Overdue - "
+                            f"{movie.title} ({movie.year})"
+                            f" is not overdue. Skipping."
+                            f" - {movieDownloadDate}"
+                        )
+
+                        self.writeLog(False, f"{txtNoOverdue}\n")
+                        logging.info(txtNoOverdue)
+
+                    isRemoved = False
+                    isPlanned = False
+
         return isRemoved, isPlanned
 
     def run(self):
