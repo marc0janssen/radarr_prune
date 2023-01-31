@@ -178,6 +178,38 @@ class RLP():
 
     def evalMovie(self, movie):
 
+        movieDownloadDate = None
+
+        fileList = glob.glob(movie.path + "/*")
+        for file in fileList:
+            if file.lower().endswith(tuple(self.video_extensions)):
+                # Get modfified date on .firstseen,
+                # Which is the downloaddate
+                # If not exist then create this file.
+
+                if not os.path.isfile(f"{movie.path}/{self.firstseen}"):
+                    with open(f"{movie.path}/{self.firstseen}", 'w') \
+                            as firstseen_file:
+                        firstseen_file.close()
+
+                        if not self.only_show_remove_messages:
+                            txtFirstSeen = (
+                                f"Prune - NEW - "
+                                f"{movie.title} ({movie.year})"
+                                f" is new."
+                                f" - {movieDownloadDate}"
+                            )
+
+                            self.writeLog(False, f"{txtFirstSeen}\n")
+                            logging.info(txtFirstSeen)
+
+                modifieddate = os.stat(
+                    f"{movie.path}/{self.firstseen}").st_mtime
+                movieDownloadDate = \
+                    datetime.fromtimestamp(modifieddate)
+
+                break
+
         isRemoved, isPlanned = False, False
 
         # Get ID's for keeping movies anyway
@@ -199,36 +231,6 @@ class RLP():
                 logging.info(txtKeeping)
 
         else:
-            movieDownloadDate = None
-
-            fileList = glob.glob(movie.path + "/*")
-            for file in fileList:
-                if file.lower().endswith(tuple(self.video_extensions)):
-                    # Get modfified date on movie.nfo,
-                    # Which is the downloaddate
-                    # movieNfo = os.path.join(movie.path, "movie.nfo")
-
-                    if not os.path.isfile(f"{movie.path}/{self.firstseen}"):
-                        with open(f"{movie.path}/{self.firstseen}", 'w') \
-                                as firstseen_file:
-                            firstseen_file.close()
-
-                            if not self.only_show_remove_messages:
-                                txtFirstSeen = (
-                                    f"Prune - NEW - "
-                                    f"{movie.title} ({movie.year})"
-                                    f" is new."
-                                )
-
-                                self.writeLog(False, f"{txtFirstSeen}\n")
-                                logging.info(txtFirstSeen)
-
-                    modifieddate = os.stat(
-                        f"{movie.path}/{self.firstseen}").st_mtime
-                    movieDownloadDate = \
-                        datetime.fromtimestamp(modifieddate)
-
-                    break
 
             if not fileList or not movieDownloadDate:
                 # If FIle is not found, the movie is missing
