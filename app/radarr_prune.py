@@ -396,15 +396,15 @@ class RLP():
 
                 else:
                     if not self.only_show_remove_messages:
-                        txtNoOverdue = (
-                            f"Prune - No Overdue - "
+                        txtActive = (
+                            f"Prune - Active - "
                             f"{movie.title} ({movie.year})"
-                            f" is not overdue. Skipping."
+                            f" is active. Skipping."
                             f" - {movieDownloadDate}"
                         )
 
-                        self.writeLog(False, f"{txtNoOverdue}\n")
-                        logging.info(txtNoOverdue)
+                        self.writeLog(False, f"{txtActive}\n")
+                        logging.info(txtActive)
 
                     isRemoved = False
                     isPlanned = False
