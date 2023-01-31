@@ -218,7 +218,6 @@ class RLP():
                                     f"Prune - NEW - "
                                     f"{movie.title} ({movie.year})"
                                     f" is new."
-                                    f" - {movieDownloadDate}"
                                 )
 
                                 self.writeLog(False, f"{txtFirstSeen}\n")
