@@ -7,8 +7,8 @@ import logging
 import configparser
 import sys
 import shutil
-import os
 import glob
+import os
 import smtplib
 
 from email.mime.multipart import MIMEMultipart
@@ -35,6 +35,7 @@ class RLP():
         self.config_file = "radarr_prune.ini"
         self.exampleconfigfile = "radarr_prune.ini.example"
         self.log_file = "radarr_prune.log"
+        self.firstseen = ".firstseen"
 
         self.config_filePath = f"{config_dir}{self.config_file}"
         self.log_filePath = f"{log_dir}{self.log_file}"
@@ -199,16 +200,24 @@ class RLP():
 
         else:
             movieDownloadDate = None
-            fileList = glob.glob(movie.path + "/*")
 
+            fileList = glob.glob(movie.path + "/*")
             for file in fileList:
                 if file.lower().endswith(tuple(self.video_extensions)):
                     # Get modfified date on movie.nfo,
                     # Which is the downloaddate
                     # movieNfo = os.path.join(movie.path, "movie.nfo")
-                    modifieddate = os.stat(file).st_mtime
+
+                    if not os.path.isfile(f"{movie.path}/{self.firstseen}"):
+                        with open(f"{movie.path}/{self.firstseen}", 'w') \
+                                as firstseen_file:
+                            firstseen_file.close()
+
+                    modifieddate = os.stat(
+                        f"{movie.path}/{self.firstseen}").st_mtime
                     movieDownloadDate = \
                         datetime.fromtimestamp(modifieddate)
+
                     break
 
             if not fileList or not movieDownloadDate:
