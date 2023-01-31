@@ -408,7 +408,7 @@ class RLP():
                 else:
                     if not self.only_show_remove_messages:
                         txtActive = (
-                            f"Prune - Active - "
+                            f"Prune - ACTIVE - "
                             f"{movie.title} ({movie.year})"
                             f" is active. Skipping."
                             f" - {movieDownloadDate}"
