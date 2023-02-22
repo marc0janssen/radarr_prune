@@ -1,4 +1,4 @@
-# Name: Pixlovarr Prune
+# Name: Radarr Prune
 # Coder: Marco Janssen (mastodon @marc0janssen@mastodon.online)
 # date: 2021-11-15 21:38:51
 # update: 2021-12-31 16:41:15
@@ -457,8 +457,8 @@ class RLP():
             media = self.radarrNode.all_movies()
 
         if self.verbose_logging:
-            logging.info("Prune - Pixlovarr Prune started.")
-        self.writeLog(True, "Prune - Pixlovarr Prune started.\n")
+            logging.info("Prune - Radarr Prune started.")
+        self.writeLog(True, "Prune - Radarr Prune started.\n")
 
         # Make sure the library is not empty.
         numDeleted = 0
@@ -501,7 +501,7 @@ class RLP():
             message["From"] = sender_email
             message['To'] = ", ".join(receiver_email)
             message['Subject'] = (
-                f"Pixlovarr - Pruned {numDeleted} movies "
+                f"Radarr - Pruned {numDeleted} movies "
                 f"and {numNotifified} planned for removal"
             )
 
