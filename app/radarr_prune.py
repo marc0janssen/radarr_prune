@@ -359,16 +359,6 @@ class RLP():
                             days=self.remove_after_days)
                 ):
 
-                    monthfound = \
-                        datetime.now().month in \
-                        self.radarr_months_no_exclusion
-                    
-                    exclusiontagsfound = True
-
-                    addImportExclusion = not (exclusiontagsfound & monthfound)
-
-                    print(addImportExclusion)
-
                     if not self.dry_run:
                         if self.radarr_enabled:
 
@@ -394,7 +384,7 @@ class RLP():
                                 tmdb_id=None,
                                 imdb_id=None,
                                 addImportExclusion=not
-                                exclusiontagsfound & monthfound,
+                                (exclusiontagsfound & monthfound),
                                 deleteFiles=self.delete_files
                             )
 
