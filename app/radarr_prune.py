@@ -358,8 +358,6 @@ class RLP():
                             days=self.remove_after_days)
                 ):
 
-                    print(movieDownloadDate.month)
-
                     if not self.dry_run:
                         if self.radarr_enabled:
 
@@ -377,7 +375,7 @@ class RLP():
                             # Check is the current month is in the
                             # no_exclusion_months list
                             monthfound = \
-                                datetime.now().month in \
+                                movieDownloadDate.month in \
                                 self.radarr_months_no_exclusion
 
                             self.radarrNode.delete_movie(
