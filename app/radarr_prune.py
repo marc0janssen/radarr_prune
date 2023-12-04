@@ -362,10 +362,12 @@ class RLP():
                     monthfound = \
                         datetime.now().month in \
                         self.radarr_months_no_exclusion
+                    
+                    exclusiontagsfound = True
 
-                    print(datetime.now().month)
-                    print(self.radarr_months_no_exclusion)
-                    print(monthfound)
+                    addImportExclusion = not (exclusiontagsfound & monthfound)
+
+                    print(addImportExclusion)
 
                     if not self.dry_run:
                         if self.radarr_enabled:
@@ -391,8 +393,8 @@ class RLP():
                                 movie_id=movie.id,
                                 tmdb_id=None,
                                 imdb_id=None,
-                                addImportExclusion=False
-                                if exclusiontagsfound & monthfound else True,
+                                addImportExclusion=not
+                                exclusiontagsfound & monthfound,
                                 deleteFiles=self.delete_files
                             )
 
