@@ -357,6 +357,12 @@ class RLP():
                             days=self.remove_after_days)
                 ):
 
+                    monthfound = \
+                        datetime.now().month in \
+                        self.radarr_months_no_exclusion
+
+                    print("ok" + monthfound)
+
                     if not self.dry_run:
                         if self.radarr_enabled:
 
