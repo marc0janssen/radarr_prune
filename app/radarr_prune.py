@@ -377,6 +377,8 @@ class RLP():
                                 datetime.now().month in \
                                 self.radarr_months_no_exclusion
 
+                            print(monthfound)
+
                             self.radarrNode.delete_movie(
                                 movie_id=movie.id,
                                 tmdb_id=None,
