@@ -202,7 +202,6 @@ class RLP():
                                 f"Prune - NEW - "
                                 f"{movie.title} ({movie.year})"
                                 f" is new."
-                                f" - {movieDownloadDate}"
                             )
 
                             self.writeLog(False, f"{txtFirstSeen}\n")
@@ -358,6 +357,8 @@ class RLP():
                         timedelta(
                             days=self.remove_after_days)
                 ):
+
+                    print(movieDownloadDate.month)
 
                     if not self.dry_run:
                         if self.radarr_enabled:
