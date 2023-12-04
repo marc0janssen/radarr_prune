@@ -1,7 +1,7 @@
 # Name: Radarr Prune
 # Coder: Marco Janssen (mastodon @marc0janssen@mastodon.online)
 # date: 2021-11-15 21:38:51
-# update: 2021-12-31 16:41:15
+# update: 2023-12-04 21:41:15
 
 import logging
 import configparser
