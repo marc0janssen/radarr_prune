@@ -61,6 +61,8 @@ class RLP():
                 self.radarr_tags_no_exclusion = list(
                     self.config['PRUNE']
                     ['AUTO_NO_EXCLUSION'].split(","))
+                # list(map(int, "list")) converts a list of string to
+                # a list of ints
                 self.radarr_months_no_exclusion = list(map(int, list(
                     self.config['PRUNE']
                     ['AUTO_NO_EXCLUSION_MONTHS'].split(","))))
@@ -383,7 +385,7 @@ class RLP():
                             monthfound = \
                                 datetime.now().month in \
                                 self.radarr_months_no_exclusion
-                                
+
                             self.radarrNode.delete_movie(
                                 movie_id=movie.id,
                                 tmdb_id=None,
