@@ -61,9 +61,9 @@ class RLP():
                 self.radarr_tags_no_exclusion = list(
                     self.config['PRUNE']
                     ['AUTO_NO_EXCLUSION'].split(","))
-                self.radarr_months_no_exclusion = list(
+                self.radarr_months_no_exclusion = list(map(int, list(
                     self.config['PRUNE']
-                    ['AUTO_NO_EXCLUSION_MONTHS'].split(","))
+                    ['AUTO_NO_EXCLUSION_MONTHS'].split(","))))
                 self.remove_after_days = int(
                     self.config['PRUNE']['REMOVE_MOVIES_AFTER_DAYS'])
                 self.warn_days_infront = int(
