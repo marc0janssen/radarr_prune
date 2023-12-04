@@ -361,7 +361,8 @@ class RLP():
                         datetime.now().month in \
                         self.radarr_months_no_exclusion
 
-                    print(monthfound)
+                    print(datetime.now().month)
+                    print(self.radarr_months_no_exclusion)
 
                     if not self.dry_run:
                         if self.radarr_enabled:
