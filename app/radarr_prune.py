@@ -192,8 +192,6 @@ class RLP():
                 # Which is the downloaddate
                 # If not exist then create this file.
 
-                print("Movie Found")
-
                 if not os.path.isfile(f"{movie.path}/{self.firstseen}"):
                     with open(f"{movie.path}/{self.firstseen}", 'w') \
                             as firstseen_file:
