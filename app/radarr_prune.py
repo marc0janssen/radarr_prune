@@ -382,8 +382,8 @@ class RLP():
                                 movie_id=movie.id,
                                 tmdb_id=None,
                                 imdb_id=None,
-                                addImportExclusion=not monthfound or
-                                not exclusiontagsfound,
+                                addImportExclusion=not
+                                (monthfound or exclusiontagsfound),
                                 deleteFiles=self.delete_files
                             )
 
