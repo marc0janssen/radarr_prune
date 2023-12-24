@@ -60,7 +60,7 @@ class RLP():
                 # PRUNE
                 self.radarr_tags_no_exclusion = list(
                     self.config['PRUNE']
-                    ['AUTO_NO_EXCLUSION'].split(","))
+                    ['AUTO_NO_EXCLUSION_TAGS'].split(","))
                 # list(map(int, "list")) converts a list of string to
                 # a list of ints
                 self.radarr_months_no_exclusion = list(map(int, list(
@@ -382,8 +382,8 @@ class RLP():
                                 movie_id=movie.id,
                                 tmdb_id=None,
                                 imdb_id=None,
-                                addImportExclusion=not
-                                (exclusiontagsfound & monthfound),
+                                addImportExclusion=not monthfound or
+                                not exclusiontagsfound,
                                 deleteFiles=self.delete_files
                             )
 
