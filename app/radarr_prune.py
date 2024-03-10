@@ -327,11 +327,13 @@ class RLP():
 
                     txtTimeLeft = \
                         'h'.join(str(self.timeLeft).split(':')[:2])
+
+                    txtTitle = f"{movie.title} ({movie.year})"
+
                     if self.pushover_enabled:
 
                         self.message = self.userPushover.send_message(
-                            message=f"Prune - {movie.title} "
-                            f"({movie.year}) "
+                            message=f"Prune - {txtTitle} "
                             f"will be removed from server in "
                             f"{txtTimeLeft}",
                             sound=self.pushover_sound
@@ -339,7 +341,7 @@ class RLP():
 
                     txtWillBeRemoved = (
                         f"Prune - WILL BE REMOVED - "
-                        f"{movie.title} ({movie.year})"
+                        f"{txtTitle}"
                         f" in {txtTimeLeft}"
                         f" - {movieDownloadDate}"
                     )
