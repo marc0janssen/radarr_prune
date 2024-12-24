@@ -472,10 +472,10 @@ class RLP():
         if self.radarr_enabled:
             folders = self.radarrNode.root_folder()
             root_Folder = folders[0]
-            disk_info = psutil.disk_usage(root_Folder.path)
-            logging.info(f"Percentage diskspace: {disk_info.percent}%")
+            diskInfo = psutil.disk_usage(root_Folder.path)
+            logging.info(f"Percentage diskspace radarr: {diskInfo.percent}%")
             diskFull = True \
-                if disk_info.percent >= self.remove_percentage else False
+                if diskInfo.percent >= self.remove_percentage else False
 
         # Get all movies from the server.
         media = None
