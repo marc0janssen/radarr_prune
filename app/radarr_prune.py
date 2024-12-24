@@ -499,7 +499,7 @@ class RLP():
         numDeleted = 0
         numNotifified = 0
         isRemoved, isPlanned = False, False
-        isFull, percentage = self.isDiskFull()
+        isFull, percentage = self.isDiskFull(self)
         if media and isFull:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
             for movie in media:
