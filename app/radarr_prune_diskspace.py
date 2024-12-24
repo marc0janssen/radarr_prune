@@ -475,7 +475,7 @@ class RLP():
             disk_info = psutil.disk_usage(root_Folder.path)
             percentage_used = disk_info.percent
             diskFull = True \
-                if percentage_used <= self.remove_percentage else False
+                if percentage_used >= self.remove_percentage else False
 
         # Get all movies from the server.
         media = None
