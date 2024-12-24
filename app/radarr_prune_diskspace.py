@@ -57,7 +57,6 @@ class RLP():
                     self.config['RADARR']
                     ['TAGS_KEEP_MOVIES_ANYWAY'].split(",")
                 )
-                self.rootFolderPath = "/"
 
                 # PRUNE
                 self.radarr_tags_no_exclusion = list(
@@ -70,6 +69,8 @@ class RLP():
                     ['AUTO_NO_EXCLUSION_MONTHS'].split(","))))
                 self.remove_after_days = int(
                     self.config['PRUNE']['REMOVE_MOVIES_AFTER_DAYS'])
+                self.remove_percentage = float(
+                    self.config['PRUNE']['REMOVE_MOVIES_DISK_PERCENTAGE'])
                 self.warn_days_infront = int(
                     self.config['PRUNE']['WARN_DAYS_INFRONT'])
                 self.dry_run = True if (
@@ -473,10 +474,8 @@ class RLP():
             root_Folder = folders[0]
             disk_info = psutil.disk_usage(root_Folder.path)
             percentage_used = disk_info.percent
-
-            print(type(percentage_used))
-
-
+            diskFull = True \
+                if percentage_used <= self.remove_percentage else False
 
         # Get all movies from the server.
         media = None
@@ -491,7 +490,7 @@ class RLP():
         numDeleted = 0
         numNotifified = 0
         isRemoved, isPlanned = False, False
-        if media:
+        if media and diskFull:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
             for movie in media:
                 isRemoved, isPlanned = self.evalMovie(movie)
