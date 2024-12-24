@@ -145,9 +145,7 @@ class RLP():
             folders = self.radarrNode.root_folder()
             root_Folder = folders[0]
             diskInfo = psutil.disk_usage(root_Folder.path)
-            return True, diskInfo.percent \
-                if diskInfo.percent >= self.remove_percentage \
-                else False, diskInfo.percent
+            return True, diskInfo.percent
 
     def sortOnTitle(self, e):
         return e.sortTitle
@@ -499,7 +497,7 @@ class RLP():
         numDeleted = 0
         numNotifified = 0
         isRemoved, isPlanned = False, False
-        isFull, percentage = self.isDiskFull(self)
+        isFull, percentage = self.isDiskFull()
         if media and isFull:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
             for movie in media:
