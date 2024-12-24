@@ -153,24 +153,19 @@ class RLP():
     def sortOnTitle(self, e):
         return e.sortTitle
 
-    def getTagLabeltoID(self, typeOfMedia):
+    def getTagLabeltoID(self):
         # Put all tags in a dictonairy with pair label <=> ID
 
         TagLabeltoID = {}
-        if typeOfMedia == "serie":
-            for tag in self.sonarrNode.all_tags():
-                # Add tag to lookup by it's name
-                TagLabeltoID[tag.label] = tag.id
-        else:
-            for tag in self.radarrNode.all_tags():
-                # Add tag to lookup by it's name
-                TagLabeltoID[tag.label] = tag.id
+        for tag in self.radarrNode.all_tags():
+            # Add tag to lookup by it's name
+            TagLabeltoID[tag.label] = tag.id
 
         return TagLabeltoID
 
-    def getIDsforTagLabels(self, typeOfmedia, tagLabels):
+    def getIDsforTagLabels(self, tagLabels):
 
-        TagLabeltoID = self.getTagLabeltoID(typeOfmedia)
+        TagLabeltoID = self.getTagLabeltoID()
 
         # Get ID's for extending media
         tagsIDs = []
@@ -233,7 +228,7 @@ class RLP():
         # Get ID's for keeping movies anyway
         tagLabels_to_keep = self.tags_to_keep
         tagsIDs_to_keep = self.getIDsforTagLabels(
-            "movie", tagLabels_to_keep)
+            tagLabels_to_keep)
 
         # check if ONE of the "KEEP" tags is
         # in the set of "MOVIE TAGS"
@@ -390,7 +385,7 @@ class RLP():
                                 self.radarr_tags_no_exclusion
                             tagsIDs_for_no_exclusion = \
                                 self.getIDsforTagLabels(
-                                    "movie", tagLabels_for_no_exclusion)
+                                    tagLabels_for_no_exclusion)
 
                             # Check if no_exclusion_tags are in movie tags
                             exclusiontagsfound = set(movie.tagsIds) & set(
