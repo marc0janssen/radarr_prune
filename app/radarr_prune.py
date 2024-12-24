@@ -319,6 +319,8 @@ class RLP():
                 # 2. Is "NOW" less than "warning days" before removal?
                 # 3. is "NOW" more then "warning days - 1" before removal
                 #               (warn only 1 day)
+                isFull, percentage = self.isDiskFull()
+
                 if (
                     timedelta(
                         days=self.remove_after_days) >
@@ -363,13 +365,16 @@ class RLP():
                     self.writeLog(False, f"{txtWillBeRemoved}\n")
                     logging.info(txtWillBeRemoved)
 
+                    self.writeLog(False,
+                                  f"Percentage diskspace radarr: "
+                                  f"{percentage}%")
+                    logging.info(f"Percentage diskspace radarr: {percentage}%")
+
                     isRemoved, isPlanned = False, True
 
                     return isRemoved, isPlanned
 
                 # Check is movie is older than "days set in INI"
-                isFull, percentage = self.isDiskFull()
-
                 if (
                     now - movieDownloadDate >=
                         timedelta(
