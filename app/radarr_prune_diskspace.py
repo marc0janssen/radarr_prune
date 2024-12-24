@@ -57,6 +57,7 @@ class RLP():
                     self.config['RADARR']
                     ['TAGS_KEEP_MOVIES_ANYWAY'].split(",")
                 )
+                self.rootFolderPath = "/"
 
                 # PRUNE
                 self.radarr_tags_no_exclusion = list(
@@ -466,12 +467,16 @@ class RLP():
             self.userPushover = \
                 self.appPushover.get_user(self.pushover_user_key)
 
-        # Get the Rootfolers
+        # Get the Rootfolers and diskage
         if self.radarr_enabled:
             folders = self.radarrNode.root_folder()
             root_Folder = folders[0]
-            print(type(root_Folder))
-            print(root_Folder.path)
+            disk_info = psutil.disk_usage(root_Folder.path)
+            percentage_used = disk_info.percent
+
+            print(type(percentage_used))
+
+
 
         # Get all movies from the server.
         media = None
