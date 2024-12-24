@@ -139,6 +139,16 @@ class RLP():
                             f'{config_dir}{self.exampleconfigfile}')
             sys.exit()
 
+    def isDiskFull(self):
+        # Get the Rootfolers and diskage
+        if self.radarr_enabled:
+            folders = self.radarrNode.root_folder()
+            root_Folder = folders[0]
+            diskInfo = psutil.disk_usage(root_Folder.path)
+            return True, diskInfo.percent \
+                if diskInfo.percent >= self.remove_percentage \
+                else False, diskInfo.percent
+
     def sortOnTitle(self, e):
         return e.sortTitle
 
@@ -357,11 +367,14 @@ class RLP():
                     return isRemoved, isPlanned
 
                 # Check is movie is older than "days set in INI"
+                isFull, percentage = self.isDiskFull()
+
                 if (
                     now - movieDownloadDate >=
                         timedelta(
-                            days=self.remove_after_days)
+                            days=self.remove_after_days) and isFull
                 ):
+                    # Is the movie to old and the disk is full
 
                     if not self.dry_run:
                         if self.radarr_enabled:
@@ -418,6 +431,11 @@ class RLP():
                     self.writeLog(False, f"{txtRemoved}\n")
                     logging.info(txtRemoved)
 
+                    self.writeLog(False,
+                                  f"Percentage diskspace radarr: "
+                                  f"{percentage}%")
+                    logging.info(f"Percentage diskspace radarr: {percentage}%")
+
                     isRemoved, isPlanned = True, False
 
                 else:
@@ -468,15 +486,6 @@ class RLP():
             self.userPushover = \
                 self.appPushover.get_user(self.pushover_user_key)
 
-        # Get the Rootfolers and diskage
-        if self.radarr_enabled:
-            folders = self.radarrNode.root_folder()
-            root_Folder = folders[0]
-            diskInfo = psutil.disk_usage(root_Folder.path)
-            logging.info(f"Percentage diskspace radarr: {diskInfo.percent}%")
-            diskFull = True \
-                if diskInfo.percent >= self.remove_percentage else False
-
         # Get all movies from the server.
         media = None
         if self.radarr_enabled:
@@ -490,7 +499,8 @@ class RLP():
         numDeleted = 0
         numNotifified = 0
         isRemoved, isPlanned = False, False
-        if media and diskFull:
+        isFull, percentage = self.isDiskFull()
+        if media and isFull:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
             for movie in media:
                 isRemoved, isPlanned = self.evalMovie(movie)
@@ -513,7 +523,9 @@ class RLP():
 
         if self.verbose_logging:
             logging.info(txtEnd)
+            logging.info(f"Percentage diskspace radarr: {percentage}%")
         self.writeLog(False, f"{txtEnd}\n")
+        self.writelog(False, f"Percentage diskspace radarr: {percentage}%\n")
 
         if self.mail_enabled and \
             (not self.only_mail_when_removed or
