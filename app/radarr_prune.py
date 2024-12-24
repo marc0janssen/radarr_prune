@@ -1,7 +1,7 @@
 # Name: Radarr Prune
 # Coder: Marco Janssen (mastodon @marc0janssen@mastodon.online)
 # date: 2021-11-15 21:38:51
-# update: 2023-12-04 21:41:15
+# update: 2024-12-24 11:45:00
 
 import logging
 import configparser
@@ -10,6 +10,7 @@ import shutil
 import glob
 import os
 import smtplib
+import psutil
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -68,6 +69,8 @@ class RLP():
                     ['AUTO_NO_EXCLUSION_MONTHS'].split(","))))
                 self.remove_after_days = int(
                     self.config['PRUNE']['REMOVE_MOVIES_AFTER_DAYS'])
+                self.remove_percentage = float(
+                    self.config['PRUNE']['REMOVE_MOVIES_DISK_PERCENTAGE'])
                 self.warn_days_infront = int(
                     self.config['PRUNE']['WARN_DAYS_INFRONT'])
                 self.dry_run = True if (
@@ -465,6 +468,15 @@ class RLP():
             self.userPushover = \
                 self.appPushover.get_user(self.pushover_user_key)
 
+        # Get the Rootfolers and diskage
+        if self.radarr_enabled:
+            folders = self.radarrNode.root_folder()
+            root_Folder = folders[0]
+            disk_info = psutil.disk_usage(root_Folder.path)
+            percentage_used = disk_info.percent
+            diskFull = True \
+                if percentage_used >= self.remove_percentage else False
+
         # Get all movies from the server.
         media = None
         if self.radarr_enabled:
@@ -478,7 +490,7 @@ class RLP():
         numDeleted = 0
         numNotifified = 0
         isRemoved, isPlanned = False, False
-        if media:
+        if media and diskFull:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
             for movie in media:
                 isRemoved, isPlanned = self.evalMovie(movie)
