@@ -469,8 +469,9 @@ class RLP():
         # Get the Rootfolers
         if self.radarr_enabled:
             folders = self.radarrNode.root_folder()
+            root_Folder = folders[0]
 
-            print(folders)
+            print(root_Folder)
 
         # Get all movies from the server.
         media = None
