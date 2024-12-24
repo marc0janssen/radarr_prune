@@ -465,7 +465,7 @@ class RLP():
             self.appPushover = Application(self.pushover_token_api)
             self.userPushover = \
                 self.appPushover.get_user(self.pushover_user_key)
-            
+
         # Get the Rootfolers
         if self.radarr_enabled:
             folders = self.radarrNode.root_folder()
