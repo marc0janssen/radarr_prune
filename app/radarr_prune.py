@@ -145,7 +145,10 @@ class RLP():
             folders = self.radarrNode.root_folder()
             root_Folder = folders[0]
             diskInfo = psutil.disk_usage(root_Folder.path)
-            return True, diskInfo.percent
+            isFull = True \
+                if diskInfo.percent >= self.remove_percentage \
+                else False
+            return (isFull, diskInfo.percent)
 
     def sortOnTitle(self, e):
         return e.sortTitle
@@ -523,7 +526,7 @@ class RLP():
             logging.info(txtEnd)
             logging.info(f"Percentage diskspace radarr: {percentage}%")
         self.writeLog(False, f"{txtEnd}\n")
-        self.writelog(False, f"Percentage diskspace radarr: {percentage}%\n")
+        self.writeLog(False, f"Percentage diskspace radarr: {percentage}%\n")
 
         if self.mail_enabled and \
             (not self.only_mail_when_removed or
