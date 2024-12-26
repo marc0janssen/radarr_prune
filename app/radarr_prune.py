@@ -504,7 +504,7 @@ class RLP():
         isFull, percentage = self.isDiskFull()
 
         logging.info(f"Percentage diskspace radarr: {percentage}%")
-        
+
         if media and isFull:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
             for movie in media:
