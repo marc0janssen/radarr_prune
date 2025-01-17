@@ -514,7 +514,7 @@ class RLP():
                     numDeleted += 1
                 if isPlanned:
                     numNotifified += 1
-                
+
                 time.sleep(0.5)
 
         txtEnd = (
