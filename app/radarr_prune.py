@@ -11,6 +11,7 @@ import glob
 import os
 import smtplib
 import psutil
+import time
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -513,6 +514,8 @@ class RLP():
                     numDeleted += 1
                 if isPlanned:
                     numNotifified += 1
+                
+                time.sleep(0.5)
 
         txtEnd = (
             f"Prune - There were {numDeleted} movies removed "
