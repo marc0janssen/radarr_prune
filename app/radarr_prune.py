@@ -515,7 +515,7 @@ class RLP():
                 if isPlanned:
                     numNotifified += 1
 
-                time.sleep(0.5)
+                time.sleep(0.2)
 
         txtEnd = (
             f"Prune - There were {numDeleted} movies removed "
