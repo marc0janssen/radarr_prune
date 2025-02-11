@@ -18,7 +18,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from datetime import datetime, timedelta
-from arrapi import RadarrAPI
+from arrapi import RadarrAPI, exceptions
 from chump import Application
 from socket import gaierror
 
@@ -465,8 +465,18 @@ class RLP():
 
         # Connect to Radarr
         if self.radarr_enabled:
-            self.radarrNode = RadarrAPI(
-                self.radarr_url, self.radarr_token)
+            try:
+                self.radarrNode = RadarrAPI(
+                    self.radarr_url, self.radarr_token)
+            except exceptions.ArrException as e:
+                logging.error(
+                    f"Can't connect to Radarr source {e}"
+                )
+                sys.exit()
+            except Exception as e:
+                logging.error(
+                    f"Unexpected error connecting Radarr source: {e}")
+                sys.exit(1)
         else:
             logging.info(
                 "Prune - Radarr disabled in INI, exting.")
