@@ -364,7 +364,8 @@ class RLP():
                     self.writeLog(False,
                                   f"Percentage diskspace radarrdv: "
                                   f"{percentage}%")
-                    logging.info(f"Percentage diskspace radarrdv: {percentage}%")
+                    logging.info
+                    (f"Percentage diskspace radarrdv: {percentage}%")
 
                     isRemoved, isPlanned = False, True
 
@@ -436,7 +437,8 @@ class RLP():
                     self.writeLog(False,
                                   f"Percentage diskspace radarrdv: "
                                   f"{percentage}%")
-                    logging.info(f"Percentage diskspace radarrdv: {percentage}%")
+                    logging.info
+                    (f"Percentage diskspace radarrdv: {percentage}%")
 
                     isRemoved, isPlanned = True, False
 
