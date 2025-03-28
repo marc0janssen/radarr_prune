@@ -362,9 +362,9 @@ class RLP():
                     logging.info(txtWillBeRemoved)
 
                     self.writeLog(False,
-                                  f"Percentage diskspace radarr: "
+                                  f"Percentage diskspace radarrdv: "
                                   f"{percentage}%")
-                    logging.info(f"Percentage diskspace radarr: {percentage}%")
+                    logging.info(f"Percentage diskspace radarrdv: {percentage}%")
 
                     isRemoved, isPlanned = False, True
 
@@ -434,9 +434,9 @@ class RLP():
                     logging.info(txtRemoved)
 
                     self.writeLog(False,
-                                  f"Percentage diskspace radarr: "
+                                  f"Percentage diskspace radarrdv: "
                                   f"{percentage}%")
-                    logging.info(f"Percentage diskspace radarr: {percentage}%")
+                    logging.info(f"Percentage diskspace radarrdv: {percentage}%")
 
                     isRemoved, isPlanned = True, False
 
@@ -514,7 +514,7 @@ class RLP():
 
         isFull, percentage = self.isDiskFull()
 
-        logging.info(f"Percentage diskspace radarr: {percentage}%")
+        logging.info(f"Percentage diskspace radarrdv: {percentage}%")
 
         if media and isFull:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
@@ -541,9 +541,9 @@ class RLP():
 
         if self.verbose_logging:
             logging.info(txtEnd)
-            logging.info(f"Percentage diskspace radarr: {percentage}%")
+            logging.info(f"Percentage diskspace radarrdv: {percentage}%")
         self.writeLog(False, f"{txtEnd}\n")
-        self.writeLog(False, f"Percentage diskspace radarr: {percentage}%\n")
+        self.writeLog(False, f"Percentage diskspace radarrdv: {percentage}%\n")
 
         if self.mail_enabled and \
             (not self.only_mail_when_removed or
