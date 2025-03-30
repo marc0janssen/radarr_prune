@@ -32,7 +32,7 @@ class RLP():
 
         config_dir = "/config/"
         app_dir = "/app/"
-        log_dir = "/logging/prune/"
+        log_dir = "/var/log/"
 
         self.config_file = "radarr_prune.ini"
         self.exampleconfigfile = "radarr_prune.ini.example"
