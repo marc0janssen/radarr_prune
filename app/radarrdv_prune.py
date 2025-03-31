@@ -543,9 +543,7 @@ class RLP():
 
         if self.verbose_logging:
             logging.info(txtEnd)
-            logging.info(f"Percentage diskspace radarrdv: {percentage}%")
         self.writeLog(False, f"{txtEnd}\n")
-        self.writeLog(False, f"Percentage diskspace radarrdv: {percentage}%\n")
 
         if self.mail_enabled and \
             (not self.only_mail_when_removed or
