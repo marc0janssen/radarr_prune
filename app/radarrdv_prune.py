@@ -12,6 +12,7 @@ import os
 import smtplib
 import psutil
 import time
+import pkg_resources
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
