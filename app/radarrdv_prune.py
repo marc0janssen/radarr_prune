@@ -438,7 +438,8 @@ class RLP():
                                   f"Percentage diskspace radarrdv: "
                                   f"{percentage}%\n")
                     logging.info("okay")
-                    logging.info(f"Percentage diskspace radarrdv: {percentage}%")
+                    logging.info(
+                        f"Percentage diskspace radarrdv: {percentage}%")
 
                     isRemoved, isPlanned = True, False
 
