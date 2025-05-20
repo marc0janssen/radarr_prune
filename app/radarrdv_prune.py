@@ -437,7 +437,6 @@ class RLP():
                     self.writeLog(False,
                                   f"Percentage diskspace radarrdv: "
                                   f"{percentage}%\n")
-                    logging.info("okay")
                     logging.info(
                         f"Percentage diskspace radarrdv: {percentage}%")
 
