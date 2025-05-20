@@ -377,7 +377,7 @@ class RLP():
                         timedelta(
                             days=self.remove_after_days) and isFull
                 ):
-                    # Is the movie to old and the disk is full
+                    # Is the movie too old and the disk is full
 
                     if not self.dry_run:
                         if self.radarr_enabled:
@@ -437,8 +437,8 @@ class RLP():
                     self.writeLog(False,
                                   f"Percentage diskspace radarrdv: "
                                   f"{percentage}%\n")
-                    logging.info(
-                        f"Percentage diskspace radarrdv: {percentage}%")
+                    logging.info("okay")
+                    logging.info(f"Percentage diskspace radarrdv: {percentage}%")
 
                     isRemoved, isPlanned = True, False
 
