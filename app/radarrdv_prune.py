@@ -1,5 +1,5 @@
 # Name: Radarr Prune
-# Coder: Marco Janssen (mastodon @marc0janssen@mastodon.online)
+# Coder: Marco Janssen (mastodon @marc0janssen@mastodon.green)
 # date: 2021-11-15 21:38:51
 # update: 2024-12-24 11:45:00
 
@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from arrapi import RadarrAPI, exceptions
 from chump import Application
 from socket import gaierror
-from app.prune_logic import decide_prune_action
+
 
 
 class RLP():
@@ -278,6 +278,17 @@ class RLP():
             'months_no_exclusion': self.radarr_months_no_exclusion,
             'is_full': isFull,
         }
+
+        # Ensure the repository root is on sys.path when the script is
+        # executed directly so `from app.prune_logic` resolves correctly.
+        repo_dir = os.path.dirname(os.path.abspath(__file__))
+        repo_root = os.path.dirname(repo_dir)
+        if repo_root not in sys.path:
+            sys.path.insert(0, repo_root)
+
+        # Import here (local) to avoid module-level import-after-code issues
+        # and to keep top-level imports tidy.
+        from app.prune_logic import decide_prune_action
 
         isRemoved, isPlanned, reason = decide_prune_action(movie_dict, config)
 
