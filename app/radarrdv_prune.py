@@ -65,17 +65,26 @@ class RLP():
                 pass
         except (IOError, FileNotFoundError):
             logging.error(
-                f"Can't open file {self.config_filePath}, "
-                "creating example INI file."
+                f"Configuration file not found at {self.config_filePath}. "
+                "Attempting to write an example INI to the config directory "
+                "and exiting so you can review and update it before rerunning."
             )
 
             src = os.path.join(app_dir, self.exampleconfigfile)
             dst = os.path.join(config_dir, self.exampleconfigfile)
             try:
                 shutil.copyfile(src, dst)
-                logging.info(f"Wrote example config to {dst}")
+                logging.info(
+                    f"Wrote example configuration to {dst}. "
+                    "Edit the file to set your Radarr URL and API token, "
+                    "and configure prune options before running again."
+                )
             except Exception as e:
-                logging.error(f"Failed to copy example INI file: {e}")
+                logging.error(
+                    f"Failed to copy example INI from {src} to {dst}: {e}. "
+                    "Create a configuration file manually and ensure the "
+                    "target directory is writable."
+                )
             sys.exit()
 
         # Load configuration
@@ -166,17 +175,16 @@ class RLP():
 
         except KeyError as e:
             logging.error(
-                f"Seems a key(s) {e} is missing from INI file. "
-                f"Please check for mistakes. Exiting."
+                f"Missing configuration key {e} in {self.config_filePath}. "
+                "Please add the missing key(s) and try again. Exiting."
             )
 
             sys.exit()
 
         except ValueError as e:
             logging.error(
-                f"Seems a invalid value in INI file. "
-                f"Please check for mistakes. Exiting. "
-                f"MSG: {e}"
+                f"Invalid value in INI file {self.config_filePath}: {e}. "
+                "Please correct the configuration and try again. Exiting."
             )
 
             sys.exit()
@@ -229,7 +237,10 @@ class RLP():
             with open(self.log_filePath, mode) as logfile:
                 logfile.write(f"{datetime.now()} - {msg}\n")
         except IOError:
-            logging.error(f"Can't write file {self.log_filePath}.")
+            logging.error(
+                f"Unable to write log file {self.log_filePath}. "
+                "Check file permissions and available disk space."
+            )
 
     def evalMovie(self, movie):
         # Determine download date (firstseen) and whether video files exist
@@ -244,8 +255,9 @@ class RLP():
                     open(firstseen_path, 'w').close()
                     if not self.only_show_remove_messages:
                         txtFirstSeen = (
-                            "Prune - NEW - "
-                            f"{movie.title} ({movie.year}) is new."
+                            f"PRUNE: NEW - {movie.title} ({movie.year}) "
+                            f"detected at {movie.path}; "
+                            "marker file created to record first-seen time."
                         )
                         self.writeLog(False, txtFirstSeen)
                         logging.info(txtFirstSeen)
@@ -294,8 +306,8 @@ class RLP():
         if reason == 'keep-tag':
             if not self.only_show_remove_messages:
                 txtKeeping = (
-                    "Prune - KEEPING - "
-                    f"{movie.title} ({movie.year}). Skipping."
+                    f"PRUNE: KEEP - {movie.title} ({movie.year}) has a "
+                    "keep tag; skipping removal."
                 )
                 self.writeLog(False, txtKeeping)
                 logging.info(txtKeeping)
@@ -304,9 +316,8 @@ class RLP():
         if reason == 'missing-files':
             if not self.only_show_remove_messages:
                 txtMissing = (
-                    "Prune - MISSING - "
-                    f"{movie.title} ({movie.year}) is not downloaded yet. "
-                    "Skipping."
+                    f"PRUNE: MISSING FILES - {movie.title} ({movie.year}) "
+                    "has no monitored video files in its folder; skipping."
                 )
                 self.writeLog(False, txtMissing)
                 logging.info(txtMissing)
@@ -336,9 +347,9 @@ class RLP():
                 )
 
             txtUnwanted = (
-                "Prune - UNWANTED - "
-                f"{movie.title} ({movie.year}){self.txtFilesDelete} - "
-                f"{movieDownloadDate}"
+                f"PRUNE: UNWANTED GENRE - {movie.title} ({movie.year})"
+                f"{self.txtFilesDelete}; "
+                f"original download date: {movieDownloadDate}"
             )
             self.writeLog(False, txtUnwanted)
             logging.info(txtUnwanted)
@@ -362,12 +373,15 @@ class RLP():
                 )
 
             txtWillBeRemoved = (
-                "Prune - WILL BE REMOVED - "
-                f"{txtTitle} in {txtTimeLeft} - {movieDownloadDate}"
+                f"PRUNE: SCHEDULED REMOVAL - {txtTitle} will be removed in "
+                f"{txtTimeLeft} (download date: {movieDownloadDate})"
             )
             self.writeLog(False, txtWillBeRemoved)
             logging.info(txtWillBeRemoved)
-            pct_msg = "Percentage diskspace radarrdv: " + f"{percentage}%"
+            pct_msg = (
+                f"Disk usage at Radarr root: {percentage}% "
+                f"(threshold {self.remove_percentage}%)."
+            )
             self.writeLog(False, pct_msg)
             logging.info(pct_msg)
             return False, True
@@ -410,13 +424,16 @@ class RLP():
                 )
 
             txtRemoved = (
-                "Prune - REMOVED - "
-                f"{movie.title} ({movie.year}){self.txtFilesDelete} - "
-                f"{movieDownloadDate}"
+                f"PRUNE: REMOVED - {movie.title} ({movie.year})"
+                f"{self.txtFilesDelete}; "
+                f"original download date: {movieDownloadDate}"
             )
             self.writeLog(False, txtRemoved)
             logging.info(txtRemoved)
-            pct_msg = "Percentage diskspace radarrdv: " + f"{percentage}%"
+            pct_msg = (
+                f"Disk usage at Radarr root: {percentage}% "
+                f"(threshold {self.remove_percentage}%)."
+            )
             self.writeLog(False, pct_msg)
             logging.info(pct_msg)
             return True, False
@@ -424,9 +441,9 @@ class RLP():
         # default: active
         if not self.only_show_remove_messages:
             txtActive = (
-                "Prune - ACTIVE - "
-                f"{movie.title} ({movie.year}) is active. Skipping. - "
-                f"{movieDownloadDate}"
+                f"PRUNE: ACTIVE - {movie.title} ({movie.year}) appears "
+                f"active or recent; skipping removal (download date: "
+                f"{movieDownloadDate})."
             )
             self.writeLog(False, txtActive)
             logging.info(txtActive)
@@ -447,27 +464,23 @@ class RLP():
                     self.radarr_url, self.radarr_token)
             except exceptions.ArrException as e:
                 logging.error(
-                    f"Can't connect to Radarr source {e}"
+                    f"Failed to connect to Radarr at {self.radarr_url}: {e}"
                 )
                 sys.exit()
             except Exception as e:
                 logging.error(
-                    f"Unexpected error connecting Radarr source: {e}")
+                    f"Unexpected error connecting to Radarr at "
+                    f"{self.radarr_url}: {e}"
+                )
                 sys.exit(1)
         else:
-            logging.info(
-                "Prune - Radarr disabled in INI, exting.")
-            self.writeLog(False, "Radarr disabled in INI, exting.\n")
+            logging.info("Radarr integration disabled; exiting.")
+            self.writeLog(False, "Radarr integration disabled.\n")
             sys.exit()
 
         if self.dry_run:
-            logging.info(
-                "*****************************************************")
-            logging.info(
-                "**** DRY RUN, NOTHING WILL BE DELETED OR REMOVED ****")
-            logging.info(
-                "*****************************************************")
-            self.writeLog(False, "Dry Run.\n")
+            logging.info("DRY RUN: no changes will be made.")
+            self.writeLog(False, "Dry run mode - no deletions performed.\n")
 
         # Setting for PushOver
         if self.pushover_enabled:
@@ -481,8 +494,8 @@ class RLP():
             media = self.radarrNode.all_movies()
 
         if self.verbose_logging:
-            logging.info("Prune - Radarr Prune started.")
-        self.writeLog(True, "Prune - Radarr Prune started.\n")
+            logging.info("PRUNE: Radarr prune run started.")
+        self.writeLog(True, "PRUNE: Radarr prune run started.\n")
 
         # Make sure the library is not empty.
         numDeleted = 0
@@ -491,7 +504,10 @@ class RLP():
 
         isFull, percentage = self.isDiskFull()
 
-        logging.info(f"Percentage diskspace radarrdv: {percentage}%")
+        logging.info(
+            f"Disk usage at Radarr root: {percentage}% "
+            f"(threshold {self.remove_percentage}%)"
+        )
 
         if media and isFull:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
@@ -572,9 +588,14 @@ class RLP():
                 email_session.sendmail(
                     self.mail_sender, self.mail_receiver, my_message)
                 email_session.quit()
-                logging.info(f"Prune - Mail Sent to {message['To']}.")
+                logging.info(
+                    f"PRUNE: Email sent to {message['To']} "
+                    "with prune log attached."
+                )
                 self.writeLog(
-                    False, f"Prune - Mail Sent to {message['To']}.\n")
+                    False,
+                    f"PRUNE: Email sent to {message['To']}.\n"
+                )
 
             except (gaierror, ConnectionRefusedError):
                 logging.error(
