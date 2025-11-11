@@ -23,9 +23,7 @@ from chump import Application
 from socket import gaierror
 
 
-
 class RLP():
-
     def __init__(self):
         logging.basicConfig(
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
