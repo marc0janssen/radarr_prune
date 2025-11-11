@@ -4,30 +4,66 @@ URL = http://192.168.1.1:7878
 TOKEN = xxxxxx
 TAGS_KEEP_MOVIES_ANYWAY = keep
 
-[PRUNE]
+; Example configuration for radarr_prune
+; Copy this file into your config directory (see README) and edit values.
+
+[RADARR]
+; Enable Radarr integration (set to ON after you configured URL and TOKEN)
 ENABLED = OFF
+URL = http://your-radarr-host:7878
+TOKEN = 
+; Comma-separated list of tag labels in Radarr which force keeping a movie
+TAGS_KEEP_MOVIES_ANYWAY = keep
+
+[PRUNE]
+; Overall enable for pruning runs. Keep OFF to prevent accidental runs.
+ENABLED = OFF
+; When ON, the script will only log actions and not delete anything.
 DRY_RUN = ON
+; If ON and actual delete is performed, remove media files permanently
 PERMANENT_DELETE_MEDIA = OFF
+; Tags (labels) that exempt a movie from automatic exclusion
 AUTO_NO_EXCLUSION_TAGS = tag1,tag2,tag3
+; Months (1-12) in which the no-exclusion-month rule applies
 AUTO_NO_EXCLUSION_MONTHS = 1,2,5,7,12
+; Remove movies after this many days since they were first seen
 REMOVE_MOVIES_AFTER_DAYS = 30
-REMOVE_MOVIES_DISK_PERCENTAGE = 80
+; Trigger pruning when disk usage (percent) is >= this value
+REMOVE_MOVIES_DISK_PERCENTAGE = 80.0
+; Number of days before removal to send a warning/notification
 WARN_DAYS_INFRONT = 1
+; If ON, only show messages about removals but do not log full details
 ONLY_SHOW_REMOVE_MESSAGES = OFF
+; Extra logging to console/file
 VERBOSE_LOGGING = ON
-VIDEO_EXTENSIONS_MONITORED = .mp4,.avi,.mkv,.m2ts,.wmv
+; File extensions to consider as video files (comma-separated)
+VIDEO_EXTENSIONS_MONITORED = .mp4,.mkv,.avi,.m2ts,.wmv
+
+; Email settings (optional)
 MAIL_ENABLED = OFF
+; When ON, only send mail if something was removed or planned (see README)
 ONLY_MAIL_WHEN_REMOVED = OFF
 MAIL_PORT = 587
-MAIL_SERVER = mail.sever.tld
+MAIL_SERVER = mail.server.tld
 MAIL_LOGIN = login@mail.tld
-MAIL_PASSWORD = sgdfjsgdjsdg
+MAIL_PASSWORD = 
 MAIL_SENDER = sender@mail.tld
 MAIL_RECEIVER = receiver@mail.tld,receiver2@mail.tld
+
+; Comma-separated genres that should be removed immediately if detected
 UNWANTED_GENRES = Horror,Musical
 
 [PUSHOVER]
+; PushOver notifications (optional)
 ENABLED = OFF
-USER_KEY = xxxxxxxxxxxxxxx
-TOKEN_API = xxxxxxxxxxxxxxx
+USER_KEY = 
+TOKEN_API = 
 SOUND = pushover
+
+; Notes:
+; - Default safe setup: PRUNE.ENABLED=OFF and PRUNE.DRY_RUN=ON. Turn PRUNE.ENABLED
+;   ON only after you verified behavior in dry-run mode.
+; - If you run in a container that mounts /config and /app, the script will
+;   attempt to copy this example into the configured config dir when no config
+;   file is present.
+; - See README.md for detailed instructions on configuration and running.
