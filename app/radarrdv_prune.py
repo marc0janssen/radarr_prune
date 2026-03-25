@@ -10,6 +10,22 @@ import shutil
 import glob
 import os
 import smtplib
+
+if (
+    __name__ == '__main__'
+    and len(sys.argv) > 1
+    and sys.argv[1] in ('--version', '-V')
+):
+    _vpath = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        '__version__.py',
+    )
+    with open(_vpath, encoding='utf-8') as _vf:
+        _vg: dict = {}
+        exec(compile(_vf.read(), '__version__.py', 'exec'), _vg)
+    print(_vg['__version__'])
+    raise SystemExit(0)
+
 import psutil
 import time
 
@@ -18,9 +34,34 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from datetime import datetime, timedelta
-from arrapi import RadarrAPI, exceptions
 from chump import Application
 from socket import gaierror
+
+_repo_dir = os.path.dirname(os.path.abspath(__file__))
+_repo_root = os.path.dirname(_repo_dir)
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
+if _repo_dir not in sys.path:
+    sys.path.insert(0, _repo_dir)
+
+try:
+    # Repo layout: /repo/app/radarrdv_prune.py
+    from app.__version__ import __version__  # noqa: E402
+    from app.radarr_prune_logic import decide_prune_action, is_on  # noqa: E402
+    from app.radarr_client import (  # noqa: E402
+        MovieRecord,
+        RadarrApiError,
+        RadarrClient,
+    )
+except ModuleNotFoundError:
+    # Flat/container layout: /app/radarr/radarrdv_prune.py
+    from __version__ import __version__  # noqa: E402
+    from radarr_prune_logic import decide_prune_action, is_on  # noqa: E402
+    from radarr_client import (  # noqa: E402
+        MovieRecord,
+        RadarrApiError,
+        RadarrClient,
+    )
 
 
 class RLP():
@@ -31,10 +72,14 @@ class RLP():
 
     # Directories: prefer env overrides, else use repo-relative
         repo_dir = os.path.dirname(os.path.abspath(__file__))
-        config_dir = os.environ.get(
-            'RADARR_PRUNE_CONFIG_DIR',
-            os.path.join(repo_dir, '..', 'config')
-        )
+        default_config_dir = os.path.join(repo_dir, '..', 'config')
+        # Container-friendly default: if a Docker mount uses `/config`,
+        # prefer that automatically.
+        env_config_dir = os.environ.get('RADARR_PRUNE_CONFIG_DIR')
+        if env_config_dir:
+            config_dir = env_config_dir
+        else:
+            config_dir = '/config' if os.path.isdir('/config') else default_config_dir
         app_dir = os.environ.get('RADARR_PRUNE_APP_DIR', repo_dir + os.sep)
         log_dir = os.environ.get(
             'RADARR_PRUNE_LOG_DIR',
@@ -93,11 +138,7 @@ class RLP():
             self.config.read(self.config_filePath)
 
             # RADARR
-            # small helper: parse ON/OFF values consistently
-            def _is_on(val: str) -> bool:
-                return str(val).strip().upper() == 'ON'
-
-            self.radarr_enabled = _is_on(
+            self.radarr_enabled = is_on(
                 self.config.get('RADARR', 'ENABLED', fallback='OFF')
             )
             self.radarr_url = self.config['RADARR']['URL']
@@ -125,32 +166,32 @@ class RLP():
                 self.config['PRUNE']['REMOVE_MOVIES_DISK_PERCENTAGE'])
             self.warn_days_infront = int(
                 self.config['PRUNE']['WARN_DAYS_INFRONT'])
-            self.dry_run = _is_on(
+            self.dry_run = is_on(
                 self.config.get('PRUNE', 'DRY_RUN', fallback='OFF')
             )
-            self.enabled_run = _is_on(
+            self.enabled_run = is_on(
                 self.config.get('PRUNE', 'ENABLED', fallback='OFF')
             )
-            self.delete_files = _is_on(
+            self.delete_files = is_on(
                 self.config.get(
                     'PRUNE', 'PERMANENT_DELETE_MEDIA', fallback='OFF'
                 )
             )
-            self.only_show_remove_messages = _is_on(
+            self.only_show_remove_messages = is_on(
                 self.config.get(
                     'PRUNE', 'ONLY_SHOW_REMOVE_MESSAGES', fallback='OFF'
                 )
             )
-            self.verbose_logging = _is_on(
+            self.verbose_logging = is_on(
                 self.config.get('PRUNE', 'VERBOSE_LOGGING', fallback='OFF')
             )
             self.video_extensions = list(
                 self.config['PRUNE']
                 ['VIDEO_EXTENSIONS_MONITORED'].split(","))
-            self.mail_enabled = True if (
-                self.config['PRUNE']
-                ['MAIL_ENABLED'] == "ON") else False
-            self.only_mail_when_removed = _is_on(
+            self.mail_enabled = is_on(
+                self.config.get('PRUNE', 'MAIL_ENABLED', fallback='OFF')
+            )
+            self.only_mail_when_removed = is_on(
                 self.config.get(
                     'PRUNE', 'ONLY_MAIL_WHEN_REMOVED', fallback='OFF'
                 )
@@ -167,8 +208,9 @@ class RLP():
                 self.config['PRUNE']['UNWANTED_GENRES'].split(","))
 
             # PUSHOVER
-            self.pushover_enabled = True if (
-                self.config['PUSHOVER']['ENABLED'] == "ON") else False
+            self.pushover_enabled = is_on(
+                self.config.get('PUSHOVER', 'ENABLED', fallback='OFF')
+            )
             self.pushover_user_key = self.config['PUSHOVER']['USER_KEY']
             self.pushover_token_api = self.config['PUSHOVER']['TOKEN_API']
             self.pushover_sound = self.config['PUSHOVER']['SOUND']
@@ -197,9 +239,13 @@ class RLP():
             return (False, 0)
 
         try:
-            folders = self.radarrNode.root_folder()
-            root_Folder = folders[0]
-            diskInfo = psutil.disk_usage(root_Folder.path)
+            folders = self.radarr_client.get_root_folders()
+            if not folders:
+                return (False, 0)
+            root_path = folders[0].get('path')
+            if not root_path:
+                return (False, 0)
+            diskInfo = psutil.disk_usage(root_path)
             isFull = diskInfo.percent >= self.remove_percentage
             return (isFull, diskInfo.percent)
         except Exception:
@@ -212,9 +258,11 @@ class RLP():
         # Put all tags in a dictonairy with pair label <=> ID
 
         TagLabeltoID = {}
-        for tag in self.radarrNode.all_tags():
-            # Add tag to lookup by it's name
-            TagLabeltoID[tag.label] = tag.id
+        for tag in self.radarr_client.get_tags():
+            label = tag.get('label')
+            tid = tag.get('id')
+            if label is not None and tid is not None:
+                TagLabeltoID[label] = tid
 
         return TagLabeltoID
 
@@ -242,6 +290,36 @@ class RLP():
                 "Check file permissions and available disk space."
             )
 
+    def _delete_action_suffix(self) -> str:
+        """Human-readable fragment for logs/Pushover after a delete attempt."""
+        if self.dry_run or not self.radarr_enabled:
+            return ", dry run (no changes to Radarr)."
+        return ", files deleted." if self.delete_files else ", files preserved."
+
+    def _log_detail(self, msg: str) -> None:
+        if self.only_show_remove_messages:
+            return
+        self.writeLog(False, msg)
+        logging.info(msg)
+
+    def _log_line(self, msg: str) -> None:
+        self.writeLog(False, msg)
+        logging.info(msg)
+
+    def _log_disk_usage_line(self, percentage: float) -> None:
+        pct_msg = (
+            f"Disk usage at Radarr root: {percentage}% "
+            f"(threshold {self.remove_percentage}%)."
+        )
+        self._log_line(pct_msg)
+
+    def _pushover(self, message: str) -> None:
+        if self.pushover_enabled:
+            self.userPushover.send_message(
+                message=message,
+                sound=self.pushover_sound,
+            )
+
     def evalMovie(self, movie):
         # Determine download date (firstseen) and whether video files exist
         movieDownloadDate = None
@@ -266,7 +344,6 @@ class RLP():
                 movieDownloadDate = datetime.fromtimestamp(modifieddate)
                 break
 
-        # Prepare inputs for decision function
         isFull, percentage = self.isDiskFull()
 
         movie_dict = {
@@ -289,184 +366,125 @@ class RLP():
             'is_full': isFull,
         }
 
-        # Ensure the repository root is on sys.path when the script is
-        # executed directly so `from app.prune_logic` resolves correctly.
-        repo_dir = os.path.dirname(os.path.abspath(__file__))
-        repo_root = os.path.dirname(repo_dir)
-        if repo_root not in sys.path:
-            sys.path.insert(0, repo_root)
+        result = decide_prune_action(movie_dict, config)
+        reason = result.reason
+        sfx = self._delete_action_suffix()
 
-        # Import here (local) to avoid module-level import-after-code issues
-        # and to keep top-level imports tidy.
-        from app.prune_logic import decide_prune_action
-
-        isRemoved, isPlanned, reason = decide_prune_action(movie_dict, config)
-
-        # Handle the different outcomes with side-effects (delete, notify, log)
-        if reason == 'keep-tag':
-            if not self.only_show_remove_messages:
-                txtKeeping = (
+        match reason:
+            case 'keep-tag':
+                self._log_detail(
                     f"PRUNE: KEEP - {movie.title} ({movie.year}) has a "
                     "keep tag; skipping removal."
                 )
-                self.writeLog(False, txtKeeping)
-                logging.info(txtKeeping)
-            return False, False
+                return False, False
 
-        if reason == 'missing-files':
-            if not self.only_show_remove_messages:
-                txtMissing = (
+            case 'missing-files':
+                self._log_detail(
                     f"PRUNE: MISSING FILES - {movie.title} ({movie.year}) "
                     "has no monitored video files in its folder; skipping."
                 )
-                self.writeLog(False, txtMissing)
-                logging.info(txtMissing)
-            return False, False
+                return False, False
 
-        if reason == 'unwanted-genre':
-            if not self.dry_run and self.radarr_enabled:
-                self.radarrNode.delete_movie(
-                    movie_id=movie.id,
-                    tmdb_id=None,
-                    imdb_id=None,
-                    addImportExclusion=True,
-                    deleteFiles=self.delete_files,
+            case 'unwanted-genre':
+                if not self.dry_run and self.radarr_enabled:
+                    try:
+                        self.radarr_client.delete_movie(
+                            movie.id,
+                            delete_files=self.delete_files,
+                            add_import_exclusion=True,
+                        )
+                    except RadarrApiError as e:
+                        logging.error(
+                            "Radarr API error deleting movie %s (%s): %s",
+                            movie.id,
+                            movie.title,
+                            e,
+                        )
+                        return False, False
+                self._pushover(
+                    f"{movie.title} ({movie.year}) Prune - UNWANTED "
+                    f"{sfx} - {movieDownloadDate}"
                 )
-
-                if self.delete_files:
-                    self.txtFilesDelete = ", files deleted."
-                else:
-                    self.txtFilesDelete = ", files preserved."
-            if self.pushover_enabled:
-                self.userPushover.send_message(
-                    message=(
-                        f"{movie.title} ({movie.year}) Prune - UNWANTED "
-                        f"{self.txtFilesDelete} - {movieDownloadDate}"
-                    ),
-                    sound=self.pushover_sound,
+                self._log_line(
+                    f"PRUNE: UNWANTED GENRE - {movie.title} ({movie.year})"
+                    f"{sfx}; "
+                    f"original download date: {movieDownloadDate}"
                 )
+                return True, False
 
-            txtUnwanted = (
-                f"PRUNE: UNWANTED GENRE - {movie.title} ({movie.year})"
-                f"{self.txtFilesDelete}; "
-                f"original download date: {movieDownloadDate}"
-            )
-            self.writeLog(False, txtUnwanted)
-            logging.info(txtUnwanted)
-            return True, False
-
-        if reason == 'will-be-removed':
-            # replicate original time-left calculation
-            timeLeft = (
-                movieDownloadDate + timedelta(days=self.remove_after_days)
-            ) - datetime.now()
-            txtTimeLeft = 'h'.join(str(timeLeft).split(':')[:2])
-            txtTitle = f"{movie.title} ({movie.year})"
-            if self.pushover_enabled:
-                self.userPushover.send_message(
-                    message=(
-                        "Prune - "
-                        f"{txtTitle} will be removed from server in "
-                        f"{txtTimeLeft}"
-                    ),
-                    sound=self.pushover_sound,
+            case 'will-be-removed':
+                timeLeft = (
+                    movieDownloadDate + timedelta(days=self.remove_after_days)
+                ) - datetime.now()
+                txtTimeLeft = 'h'.join(str(timeLeft).split(':')[:2])
+                txtTitle = f"{movie.title} ({movie.year})"
+                self._pushover(
+                    "Prune - "
+                    f"{txtTitle} will be removed from server in "
+                    f"{txtTimeLeft}"
                 )
-
-            txtWillBeRemoved = (
-                f"PRUNE: SCHEDULED REMOVAL - {txtTitle} will be removed in "
-                f"{txtTimeLeft} (download date: {movieDownloadDate})"
-            )
-            self.writeLog(False, txtWillBeRemoved)
-            logging.info(txtWillBeRemoved)
-            pct_msg = (
-                f"Disk usage at Radarr root: {percentage}% "
-                f"(threshold {self.remove_percentage}%)."
-            )
-            self.writeLog(False, pct_msg)
-            logging.info(pct_msg)
-            return False, True
-
-        if reason == 'removed':
-            # determine exclusion flags as before
-            tagLabels_for_no_exclusion = self.radarr_tags_no_exclusion
-            tagsIDs_for_no_exclusion = (
-                self.getIDsforTagLabels(tagLabels_for_no_exclusion)
-            )
-            exclusiontagsfound = bool(
-                set(movie.tagsIds) & set(tagsIDs_for_no_exclusion)
-            )
-            monthfound = (
-                movieDownloadDate.month in self.radarr_months_no_exclusion
-                if movieDownloadDate
-                else False
-            )
-
-            if not self.dry_run and self.radarr_enabled:
-                self.radarrNode.delete_movie(
-                    movie_id=movie.id,
-                    tmdb_id=None,
-                    imdb_id=None,
-                    addImportExclusion=not (monthfound or exclusiontagsfound),
-                    deleteFiles=self.delete_files,
+                self._log_line(
+                    f"PRUNE: SCHEDULED REMOVAL - {txtTitle} will be removed in "
+                    f"{txtTimeLeft} (download date: {movieDownloadDate})"
                 )
+                self._log_disk_usage_line(percentage)
+                return False, True
 
-                if self.delete_files:
-                    self.txtFilesDelete = ", files deleted."
-                else:
-                    self.txtFilesDelete = ", files preserved."
-            if self.pushover_enabled:
-                self.userPushover.send_message(
-                    message=(
-                        f"{movie.title} ({movie.year}) Prune - REMOVED "
-                        f"{self.txtFilesDelete} - {movieDownloadDate}"
-                    ),
-                    sound=self.pushover_sound,
+            case 'removed':
+                if not self.dry_run and self.radarr_enabled:
+                    try:
+                        self.radarr_client.delete_movie(
+                            movie.id,
+                            delete_files=self.delete_files,
+                            add_import_exclusion=result.add_import_exclusion,
+                        )
+                    except RadarrApiError as e:
+                        logging.error(
+                            "Radarr API error deleting movie %s (%s): %s",
+                            movie.id,
+                            movie.title,
+                            e,
+                        )
+                        return False, False
+                self._pushover(
+                    f"{movie.title} ({movie.year}) Prune - REMOVED "
+                    f"{sfx} - {movieDownloadDate}"
                 )
+                self._log_line(
+                    f"PRUNE: REMOVED - {movie.title} ({movie.year})"
+                    f"{sfx}; "
+                    f"original download date: {movieDownloadDate}"
+                )
+                self._log_disk_usage_line(percentage)
+                return True, False
 
-            txtRemoved = (
-                f"PRUNE: REMOVED - {movie.title} ({movie.year})"
-                f"{self.txtFilesDelete}; "
-                f"original download date: {movieDownloadDate}"
-            )
-            self.writeLog(False, txtRemoved)
-            logging.info(txtRemoved)
-            pct_msg = (
-                f"Disk usage at Radarr root: {percentage}% "
-                f"(threshold {self.remove_percentage}%)."
-            )
-            self.writeLog(False, pct_msg)
-            logging.info(pct_msg)
-            return True, False
-
-        # default: active
-        if not self.only_show_remove_messages:
-            txtActive = (
-                f"PRUNE: ACTIVE - {movie.title} ({movie.year}) appears "
-                f"active or recent; skipping removal (download date: "
-                f"{movieDownloadDate})."
-            )
-            self.writeLog(False, txtActive)
-            logging.info(txtActive)
-
-        return False, False
+            case _:
+                self._log_detail(
+                    f"PRUNE: ACTIVE - {movie.title} ({movie.year}) appears "
+                    f"active or recent; skipping removal (download date: "
+                    f"{movieDownloadDate})."
+                )
+                return False, False
 
     def run(self):
+        logging.info("Radarr Prune %s", __version__)
         if not self.enabled_run:
             logging.info(
                 "Prune - Library purge disabled.")
             self.writeLog(False, "Prune - Library purge disabled.\n")
             sys.exit()
 
-        # Connect to Radarr
+        # Connect to Radarr (HTTP API v3, no arrapi)
         if self.radarr_enabled:
             try:
-                self.radarrNode = RadarrAPI(
+                self.radarr_client = RadarrClient(
                     self.radarr_url, self.radarr_token)
-            except exceptions.ArrException as e:
+                self.radarr_client.ping()
+            except RadarrApiError as e:
                 logging.error(
-                    f"Failed to connect to Radarr at {self.radarr_url}: {e}"
+                    f"Failed to reach Radarr at {self.radarr_url}: {e}"
                 )
-                sys.exit()
+                sys.exit(1)
             except Exception as e:
                 logging.error(
                     f"Unexpected error connecting to Radarr at "
@@ -491,7 +509,12 @@ class RLP():
         # Get all movies from the server.
         media = None
         if self.radarr_enabled:
-            media = self.radarrNode.all_movies()
+            try:
+                raw = self.radarr_client.get_movies()
+                media = [MovieRecord.from_api(m) for m in raw]
+            except RadarrApiError as e:
+                logging.error("Failed to fetch movies from Radarr: %s", e)
+                sys.exit(1)
 
         if self.verbose_logging:
             logging.info("PRUNE: Radarr prune run started.")
@@ -509,6 +532,8 @@ class RLP():
             f"(threshold {self.remove_percentage}%)"
         )
 
+        # Movies are only evaluated when usage >= REMOVE_MOVIES_DISK_PERCENTAGE
+        # (disk "full"). No pruning or per-movie logging runs below that.
         if media and isFull:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
             for movie in media:
@@ -552,9 +577,9 @@ class RLP():
                 f"and {numNotifified} planned for removal"
             )
 
-            attachment = open(self.log_filePath, 'rb')
-            obj = MIMEBase('application', 'octet-stream')
-            obj.set_payload((attachment).read())
+            with open(self.log_filePath, 'rb') as attachment:
+                obj = MIMEBase('application', 'octet-stream')
+                obj.set_payload(attachment.read())
             encoders.encode_base64(obj)
             obj.add_header(
                 'Content-Disposition',
@@ -567,11 +592,8 @@ class RLP():
                 "Have a nice day.\n\n"
             )
 
-            logfile = open(self.log_filePath, "r")
-
-            body += ''.join(logfile.readlines())
-
-            logfile.close()
+            with open(self.log_filePath, "r", encoding='UTF-8') as logfile:
+                body += logfile.read()
 
             plain_text = MIMEText(
                 body, _subtype='plain', _charset='UTF-8')
@@ -610,9 +632,12 @@ class RLP():
                 logging.error(
                     "SMTP error occurred: " + str(e))
 
+        rc = getattr(self, 'radarr_client', None)
+        if rc is not None:
+            rc.close()
+
 
 if __name__ == '__main__':
-
     rlp = RLP()
     rlp.run()
     rlp = None

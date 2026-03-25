@@ -30,6 +30,9 @@ AUTO_NO_EXCLUSION_MONTHS = 1,2,5,7,12
 REMOVE_MOVIES_AFTER_DAYS = 30
 ; Trigger pruning when disk usage (percent) is >= this value
 REMOVE_MOVIES_DISK_PERCENTAGE = 80.0
+; The movie loop (all prune actions and per-movie logging) runs only while
+; disk usage is at or above REMOVE_MOVIES_DISK_PERCENTAGE. Below that
+; threshold, no movies are evaluated.
 ; Number of days before removal to send a warning/notification
 WARN_DAYS_INFRONT = 1
 ; If ON, only show messages about removals but do not log full details

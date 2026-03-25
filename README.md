@@ -2,14 +2,38 @@
 
 Radarr Prune verwijdert (of markeert) oude of ongewenste films uit je Radarr-database
 volgens regels die je in de INI-config instelt. Dit repo bevat een eenvoudige, testbare
-beslissingslaag (`app/prune_logic.py`) en de integratie met Radarr in
+beslissingslaag (`app/radarr_prune_logic.py`) en de integratie met Radarr in
 `app/radarrdv_prune.py`.
+
+## Architectuur
+
+De prune-**beslissing** (tags, leeftijd, schijfdrempel, waarschuwingsvenster, uitzonderingen)
+staat bewust **los** van het script dat de API aanroept, logging doet en notificaties verstuurt.
+
+- **Testen** — `radarr_prune_logic` bevat geen netwerk of bestands-I/O: alleen invoer →
+  beslissing. Daardoor zijn de regels als pure functies met pytest te testen zonder Radarr
+  te mocken voor elke scenario.
+- **Onderhoud** — Wijzigingen aan regels gaan op één plek; tokens, URL’s en endpoints
+  blijven in het integratiescript.
+- **Hergebruik** — Hetzelfde patroon (beslislaag + aparte “driver”) kun je toepassen op
+  andere *arr*-tools, bijvoorbeeld Sonarr: de API en velden verschillen, maar vergelijkbare
+  prune-regels kun je delen of spiegelen zonder de hele hoofdfile te dupliceren.
 
 ## Hoofdpunten
 - Veilig standaardgedrag: gebruik `DRY_RUN=ON` om eerst te controleren wat er zou
   gebeuren zonder daadwerkelijk te verwijderen.
 - Beslissingslogica is gescheiden (pure functies) en getest met pytest.
 - Compatibel met PushOver en e-mailmeldingen.
+
+## Versie
+
+Het applicatieversienummer staat op één plek in `app/__version__.py` (`__version__`).
+Hoger bij releases (aanbevolen: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`).
+
+- Commando: `python app/radarrdv_prune.py --version` of `-V` (drukt het nummer af en stopt;
+  werkt met alleen de standaardlibrary, nog vóór optionele packages zoals `psutil` worden geladen).
+- Elke run logt een regel: `Radarr Prune <versie>` aan het begin van `run()`.
+- In code: `from app import __version__` of `from app.__version__ import __version__`.
 
 ## Vereisten
 - Python 3.8+ (3.12 getest in dev-omgeving)
@@ -28,7 +52,8 @@ pip install -r requirements.txt
 3. Plaats je configuratie in een map (of gebruik de voorbeeld-INI):
 
 ```fish
-# set een config dir (optioneel, anders maakt het script een example INI in ./config)
+# set een config dir (optioneel)
+# standaard probeert het script ook `/config` (als die map bestaat)
 set -x RADARR_PRUNE_CONFIG_DIR "/pad/naar/config"
 
 # kopieer voorbeeld INI naar config map als je nog geen config hebt
@@ -84,28 +109,19 @@ geactiveerd):
 ```
 
 De tests bevinden zich in `tests/` en de belangrijkste pure functie is
-`app.prune_logic.decide_prune_action`.
+`app.radarr_prune_logic.decide_prune_action`.
 
 ## Development notes
-- De kernregel (of een toekomstige uitbreiding daarvan) staat in
-  `app/prune_logic.py` — dit maakt het eenvoudig om extra regels toe te voegen
-  en unit-tests te schrijven.
-- `app/radarrdv_prune.py` doet de integratie: het leest config, roept Radarr
-  aan, verstuurt meldingen en schrijft logbestanden.
-- Standaard schrijft het script logs naar de `log_dir` zoals ingesteld in de
-  code of via environment overrides.
+- Nieuwe of gewijzigde prune-regels horen in `app/radarr_prune_logic.py`, met tests in
+  `tests/`. Het integratiescript mapt Radarr-responses naar het invoermodel van
+  `decide_prune_action` en voert de uitkomst uit.
+- `app/radarrdv_prune.py` leest config, roept Radarr aan, verstuurt meldingen en schrijft
+  logbestanden. Standaard gaan logs naar `log_dir` zoals in de code of via environment
+  overrides ingesteld.
 
 ## Contributie
 - Voeg kleine, gerichte PRs toe. Nieuwe logica gaat idealiter eerst in
-  `app/prune_logic.py` met bijbehorende tests.
+  `app/radarr_prune_logic.py` met bijbehorende tests.
 
 ## License
 Zie `LICENSE` in de repo.
-
----
-Als je wilt kan ik ook:
-- het `app/radarrdv_prune.ini.example` verduidelijken en veiliger maken
-- een GitHub Actions workflow toevoegen die pytest en lint draait
-- integratietests schrijven die Radarr-API-calls mocken
-
-Zeg welke van de bovenstaande je wil en ik voer het uit.
