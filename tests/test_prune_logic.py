@@ -17,7 +17,6 @@ def test_keep_tag():
         'warn_days_infront': 5,
         'tags_no_exclusion_ids': [],
         'months_no_exclusion': [],
-        'is_full': True,
     }
 
     r = decide_prune_action(movie, config, now)
@@ -34,7 +33,6 @@ def test_missing_files():
         'warn_days_infront': 5,
         'tags_no_exclusion_ids': [],
         'months_no_exclusion': [],
-        'is_full': True,
     }
 
     r = decide_prune_action(movie, config, now)
@@ -55,7 +53,6 @@ def test_unwanted_genre():
         'warn_days_infront': 5,
         'tags_no_exclusion_ids': [],
         'months_no_exclusion': [],
-        'is_full': True,
     }
 
     r = decide_prune_action(movie, config, now)
@@ -73,14 +70,13 @@ def test_warn_window():
         'warn_days_infront': 7,
         'tags_no_exclusion_ids': [],
         'months_no_exclusion': [],
-        'is_full': True,
     }
 
     r = decide_prune_action(movie, config, now)
     assert r == PruneResult(False, True, 'will-be-removed', False)
 
 
-def test_remove_when_full_and_old():
+def test_remove_when_old_enough():
     download_date = datetime(2024, 1, 1)
     now = download_date + timedelta(days=400)
     movie = {'tagsIds': [], 'genres': [], 'download_date': download_date}
@@ -91,7 +87,6 @@ def test_remove_when_full_and_old():
         'warn_days_infront': 7,
         'tags_no_exclusion_ids': [],
         'months_no_exclusion': [],
-        'is_full': True,
     }
 
     r = decide_prune_action(movie, config, now)
@@ -109,9 +104,25 @@ def test_remove_skipped_when_month_exclusion():
         'warn_days_infront': 7,
         'tags_no_exclusion_ids': [],
         'months_no_exclusion': [1],
-        'is_full': True,
     }
 
     r = decide_prune_action(movie, config, now)
     assert r.reason == 'active'
     assert r.add_import_exclusion is False
+
+
+def test_remove_when_old_without_disk_flag():
+    download_date = datetime(2024, 1, 1)
+    now = download_date + timedelta(days=120)
+    movie = {'tagsIds': [], 'genres': [], 'download_date': download_date}
+    config = {
+        'tags_keep_ids': [],
+        'unwanted_genres': [],
+        'remove_after_days': 30,
+        'warn_days_infront': 7,
+        'tags_no_exclusion_ids': [],
+        'months_no_exclusion': [],
+    }
+
+    r = decide_prune_action(movie, config, now)
+    assert r == PruneResult(True, False, 'removed', True)

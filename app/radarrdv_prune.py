@@ -26,7 +26,6 @@ if (
     print(_vg['__version__'])
     raise SystemExit(0)
 
-import psutil
 import time
 
 from email.mime.multipart import MIMEMultipart
@@ -162,8 +161,6 @@ class RLP():
             )
             self.remove_after_days = int(
                 self.config['PRUNE']['REMOVE_MOVIES_AFTER_DAYS'])
-            self.remove_percentage = float(
-                self.config['PRUNE']['REMOVE_MOVIES_DISK_PERCENTAGE'])
             self.warn_days_infront = int(
                 self.config['PRUNE']['WARN_DAYS_INFRONT'])
             self.dry_run = is_on(
@@ -231,53 +228,24 @@ class RLP():
 
             sys.exit()
 
-    def isDiskFull(self):
-        # Get the Rootfolders and disk usage. Be defensive: if Radarr isn't
-        # enabled or an error occurs, return (False, 0) to avoid accidental
-        # deletions.
-        if not getattr(self, 'radarr_enabled', False):
-            return (False, 0)
-
-        try:
-            folders = self.radarr_client.get_root_folders()
-            if not folders:
-                return (False, 0)
-            root_path = folders[0].get('path')
-            if not root_path:
-                return (False, 0)
-            diskInfo = psutil.disk_usage(root_path)
-            isFull = diskInfo.percent >= self.remove_percentage
-            return (isFull, diskInfo.percent)
-        except Exception:
-            return (False, 0)
-
     def sortOnTitle(self, e):
         return e.sortTitle
 
     def getTagLabeltoID(self):
-        # Put all tags in a dictonairy with pair label <=> ID
-
-        TagLabeltoID = {}
-        for tag in self.radarr_client.get_tags():
-            label = tag.get('label')
-            tid = tag.get('id')
-            if label is not None and tid is not None:
-                TagLabeltoID[label] = tid
-
-        return TagLabeltoID
+        # Put all tags in a dictionary with pair label <=> ID
+        return {
+            tag['label']: tag['id']
+            for tag in self.radarr_client.get_tags()
+            if tag.get('label') is not None and tag.get('id') is not None
+        }
 
     def getIDsforTagLabels(self, tagLabels):
-
         TagLabeltoID = self.getTagLabeltoID()
-
-        # Get ID's for extending media
-        tagsIDs = []
-        for taglabel in tagLabels:
-            tagID = TagLabeltoID.get(taglabel)
-            if tagID:
-                tagsIDs.append(tagID)
-
-        return tagsIDs
+        # Get IDs for existing labels only
+        return [
+            tagID for taglabel in tagLabels
+            if (tagID := TagLabeltoID.get(taglabel))
+        ]
 
     def writeLog(self, init, msg):
         mode = "w" if init else "a"
@@ -306,19 +274,36 @@ class RLP():
         self.writeLog(False, msg)
         logging.info(msg)
 
-    def _log_disk_usage_line(self, percentage: float) -> None:
-        pct_msg = (
-            f"Disk usage at Radarr root: {percentage}% "
-            f"(threshold {self.remove_percentage}%)."
-        )
-        self._log_line(pct_msg)
-
     def _pushover(self, message: str) -> None:
         if self.pushover_enabled:
             self.userPushover.send_message(
                 message=message,
                 sound=self.pushover_sound,
             )
+
+    def _try_delete_movie(
+        self,
+        movie_id: int,
+        movie_title: str,
+        add_import_exclusion: bool,
+    ) -> bool:
+        if self.dry_run or not self.radarr_enabled:
+            return True
+        try:
+            self.radarr_client.delete_movie(
+                movie_id,
+                delete_files=self.delete_files,
+                add_import_exclusion=add_import_exclusion,
+            )
+            return True
+        except RadarrApiError as e:
+            logging.error(
+                "Radarr API error deleting movie %s (%s): %s",
+                movie_id,
+                movie_title,
+                e,
+            )
+            return False
 
     def evalMovie(self, movie):
         # Determine download date (firstseen) and whether video files exist
@@ -344,8 +329,6 @@ class RLP():
                 movieDownloadDate = datetime.fromtimestamp(modifieddate)
                 break
 
-        isFull, percentage = self.isDiskFull()
-
         movie_dict = {
             'tagsIds': list(movie.tagsIds),
             'genres': list(movie.genres),
@@ -363,7 +346,6 @@ class RLP():
                 self.radarr_tags_no_exclusion
             ),
             'months_no_exclusion': self.radarr_months_no_exclusion,
-            'is_full': isFull,
         }
 
         result = decide_prune_action(movie_dict, config)
@@ -386,21 +368,8 @@ class RLP():
                 return False, False
 
             case 'unwanted-genre':
-                if not self.dry_run and self.radarr_enabled:
-                    try:
-                        self.radarr_client.delete_movie(
-                            movie.id,
-                            delete_files=self.delete_files,
-                            add_import_exclusion=True,
-                        )
-                    except RadarrApiError as e:
-                        logging.error(
-                            "Radarr API error deleting movie %s (%s): %s",
-                            movie.id,
-                            movie.title,
-                            e,
-                        )
-                        return False, False
+                if not self._try_delete_movie(movie.id, movie.title, True):
+                    return False, False
                 self._pushover(
                     f"{movie.title} ({movie.year}) Prune - UNWANTED "
                     f"{sfx} - {movieDownloadDate}"
@@ -427,25 +396,13 @@ class RLP():
                     f"PRUNE: SCHEDULED REMOVAL - {txtTitle} will be removed in "
                     f"{txtTimeLeft} (download date: {movieDownloadDate})"
                 )
-                self._log_disk_usage_line(percentage)
                 return False, True
 
             case 'removed':
-                if not self.dry_run and self.radarr_enabled:
-                    try:
-                        self.radarr_client.delete_movie(
-                            movie.id,
-                            delete_files=self.delete_files,
-                            add_import_exclusion=result.add_import_exclusion,
-                        )
-                    except RadarrApiError as e:
-                        logging.error(
-                            "Radarr API error deleting movie %s (%s): %s",
-                            movie.id,
-                            movie.title,
-                            e,
-                        )
-                        return False, False
+                if not self._try_delete_movie(
+                    movie.id, movie.title, result.add_import_exclusion
+                ):
+                    return False, False
                 self._pushover(
                     f"{movie.title} ({movie.year}) Prune - REMOVED "
                     f"{sfx} - {movieDownloadDate}"
@@ -455,7 +412,6 @@ class RLP():
                     f"{sfx}; "
                     f"original download date: {movieDownloadDate}"
                 )
-                self._log_disk_usage_line(percentage)
                 return True, False
 
             case _:
@@ -525,16 +481,8 @@ class RLP():
         numNotifified = 0
         isRemoved, isPlanned = False, False
 
-        isFull, percentage = self.isDiskFull()
-
-        logging.info(
-            f"Disk usage at Radarr root: {percentage}% "
-            f"(threshold {self.remove_percentage}%)"
-        )
-
-        # Movies are only evaluated when usage >= REMOVE_MOVIES_DISK_PERCENTAGE
-        # (disk "full"). No pruning or per-movie logging runs below that.
-        if media and isFull:
+        # Movies are always evaluated; prune decisions are age/tag/month based.
+        if media:
             media.sort(key=self.sortOnTitle)  # Sort the list on Title
             for movie in media:
                 isRemoved, isPlanned = self.evalMovie(movie)

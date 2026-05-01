@@ -27,7 +27,6 @@ def decide_prune_action(
         'warn_days_infront': int,
         'tags_no_exclusion_ids': List[int],
         'months_no_exclusion': List[int],
-        'is_full': bool,
     }
 
     Returns: (isRemoved, isPlanned, reason)
@@ -40,7 +39,6 @@ def decide_prune_action(
     warn_days_infront: int = int(config.get('warn_days_infront', 0))
     tags_no_exclusion_ids: List[int] = config.get('tags_no_exclusion_ids', [])
     months_no_exclusion: List[int] = config.get('months_no_exclusion', [])
-    is_full: bool = bool(config.get('is_full', False))
 
     tagsIds = set(movie.get('tagsIds') or [])
     genres = set(movie.get('genres') or [])
@@ -66,9 +64,8 @@ def decide_prune_action(
     if timedelta(0) < time_to_removal <= timedelta(days=warn_days_infront):
         return False, True, 'will-be-removed'
 
-    # Removal: older than configured days and disk is full
-    # and not excluded by tag/month
-    if now - download_date >= timedelta(days=remove_after_days) and is_full:
+    # Removal: older than configured days and not excluded by tag/month
+    if now - download_date >= timedelta(days=remove_after_days):
         monthfound = download_date.month in months_no_exclusion
         exclusiontagsfound = bool(tagsIds & set(tags_no_exclusion_ids))
         if not (monthfound or exclusiontagsfound):

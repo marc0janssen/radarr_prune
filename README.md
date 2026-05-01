@@ -7,7 +7,7 @@ beslissingslaag (`app/radarr_prune_logic.py`) en de integratie met Radarr in
 
 ## Architectuur
 
-De prune-**beslissing** (tags, leeftijd, schijfdrempel, waarschuwingsvenster, uitzonderingen)
+De prune-**beslissing** (tags, leeftijd, waarschuwingsvenster, uitzonderingen)
 staat bewust **los** van het script dat de API aanroept, logging doet en notificaties verstuurt.
 
 - **Testen** — `radarr_prune_logic` bevat geen netwerk of bestands-I/O: alleen invoer →
@@ -31,7 +31,7 @@ Het applicatieversienummer staat op één plek in `app/__version__.py` (`__versi
 Hoger bij releases (aanbevolen: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`).
 
 - Commando: `python app/radarrdv_prune.py --version` of `-V` (drukt het nummer af en stopt;
-  werkt met alleen de standaardlibrary, nog vóór optionele packages zoals `psutil` worden geladen).
+  werkt met alleen de standaardlibrary, nog vóór optionele packages worden geladen).
 - Elke run logt een regel: `Radarr Prune <versie>` aan het begin van `run()`.
 - In code: `from app import __version__` of `from app.__version__ import __version__`.
 
@@ -84,7 +84,6 @@ geeft alle beschikbare opties; hieronder staan de meest belangrijke:
   - ENABLED = ON|OFF             # globale enable voor de prune-run
   - DRY_RUN = ON|OFF             # ON = niets verwijderen, alleen loggen
   - REMOVE_MOVIES_AFTER_DAYS = 30
-  - REMOVE_MOVIES_DISK_PERCENTAGE = 90.0
   - WARN_DAYS_INFRONT = 3
   - VIDEO_EXTENSIONS_MONITORED = mkv,mp4,avi
   - PERMANENT_DELETE_MEDIA = ON|OFF
@@ -99,6 +98,11 @@ geeft alle beschikbare opties; hieronder staan de meest belangrijke:
   - USER_KEY, TOKEN_API, SOUND
 
 Lees `app/radarrdv_prune.ini.example` voor een compleet voorbeeld en toelichting.
+
+### Prune-beslissing (huidig gedrag)
+- Verwijderen gebeurt zodra een film ouder is dan `REMOVE_MOVIES_AFTER_DAYS`.
+- Disk usage is niet langer een vereiste voor verwijderen.
+- Keep-tags, no-exclusion-tags/-maanden en warning window blijven actief.
 
 ## Tests
 De beslissingslogica is getest met pytest. Om tests lokaal te draaien (venv
