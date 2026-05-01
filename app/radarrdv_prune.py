@@ -240,7 +240,10 @@ class RLP():
         }
 
     def getIDsforTagLabels(self, tagLabels):
-        TagLabeltoID = self.getTagLabeltoID()
+        TagLabeltoID = getattr(self, '_tag_label_to_id', None)
+        if TagLabeltoID is None:
+            TagLabeltoID = self.getTagLabeltoID()
+            self._tag_label_to_id = TagLabeltoID
         # Get IDs for existing labels only
         return [
             tagID for taglabel in tagLabels
@@ -336,15 +339,11 @@ class RLP():
         }
 
         config = {
-            'tags_keep_ids': self.getIDsforTagLabels(
-                self.tags_to_keep
-            ),
+            'tags_keep_ids': self.tags_to_keep_ids,
             'unwanted_genres': self.unwanted_genres,
             'remove_after_days': self.remove_after_days,
             'warn_days_infront': self.warn_days_infront,
-            'tags_no_exclusion_ids': self.getIDsforTagLabels(
-                self.radarr_tags_no_exclusion
-            ),
+            'tags_no_exclusion_ids': self.tags_no_exclusion_ids,
             'months_no_exclusion': self.radarr_months_no_exclusion,
         }
 
@@ -466,6 +465,15 @@ class RLP():
         media = None
         if self.radarr_enabled:
             try:
+                # Cache tag label -> id mapping once per run to avoid
+                # per-movie /tag API calls.
+                self._tag_label_to_id = self.getTagLabeltoID()
+                self.tags_to_keep_ids = self.getIDsforTagLabels(
+                    self.tags_to_keep
+                )
+                self.tags_no_exclusion_ids = self.getIDsforTagLabels(
+                    self.radarr_tags_no_exclusion
+                )
                 raw = self.radarr_client.get_movies()
                 media = [MovieRecord.from_api(m) for m in raw]
             except RadarrApiError as e:
